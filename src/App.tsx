@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
 import Spinner from './components/common/Spinner';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -20,7 +21,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={
           <ProtectedRoute>
-            <div className="p-6">Dashboard coming soon</div>
+            <Dashboard />
           </ProtectedRoute>
         } />
         <Route path="/" element={
