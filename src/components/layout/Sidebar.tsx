@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, User, ArrowLeftRight,
-  TrendingUp, FileText, Shield, Menu, X
+  TrendingUp, FileText, Shield, Menu, X,
+  BookOpen
 } from 'lucide-react';
 
 const links = [
@@ -12,6 +13,7 @@ const links = [
   { to: '/promotions', icon: TrendingUp, label: 'Promotion' },
   { to: '/documents', icon: FileText, label: 'Documents' },
   { to: '/credentials', icon: Shield, label: 'Credentials' },
+   { to: '/exams', icon: BookOpen, label: 'Examinations' },
 ];
 
 const Sidebar = () => {
