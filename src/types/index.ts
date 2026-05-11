@@ -64,3 +64,27 @@ export interface Credential {
   file_type: string;
   ocr_status: string;
 }
+
+export interface Exam {
+  id: string;
+  title: string;
+  description: string;
+  duration_minutes: number;
+  total_marks: number;
+  pass_mark: number;
+  status: string;
+  question_count: number;
+  my_attempt_status: string | null;
+  my_score: number | null;
+  my_passed: boolean | null;
+}
+
+export interface ExamQuestion {
+  id: string;
+  question: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  marks: number;
+}
