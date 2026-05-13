@@ -180,8 +180,8 @@ const Profile = () => {
         formData.append('passport_photo', photoFile);
       }
 
-      const res = await updateMyProfile(formData);
-      setProfile(res.data.teacher);
+      await updateMyProfile(formData);
+      await loadProfile();
       setEditing(false);
       setPhotoFile(null);
       setPhotoPreview(null);
@@ -219,10 +219,9 @@ const Profile = () => {
 
   if (loading) return <Layout><Spinner /></Layout>;
 
+  const rawPhoto = (profile as any)?.passport_photo;
   const photoSrc = photoPreview ||
-    ((profile as any)?.passport_photo
-      ? `http://localhost:5000/${(profile as any).passport_photo.replace(/\\/g, '/')}`
-      : null);
+    (rawPhoto ? `http://localhost:5000/${rawPhoto.replace(/^\//, '')}` : null);
 
   const employmentStatus = (profile as any)?.employment_status || 'active';
 
