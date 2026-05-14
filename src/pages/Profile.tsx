@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { getMyProfile, updateMyProfile } from '../api/teachers';
 import Layout from '../components/layout/Layout';
 import Spinner from '../components/common/Spinner';
-import { type Teacher } from '../types/index';
 import toast from 'react-hot-toast';
 import { User, Edit, Save, X, Camera, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -10,7 +9,6 @@ const TITLES = ['Mr', 'Mrs', 'Ms', 'Miss', 'Dr', 'Prof', 'Rev', 'Alhaji', 'Madam
 const QUALIFICATIONS = ['Certificate', 'Diploma', 'B.Ed', 'B.A', 'B.Sc', 'M.Ed', 'M.A', 'M.Sc', 'PhD'];
 const MARITAL_STATUSES = ['single', 'married', 'divorced', 'widowed', 'separated'];
 
-// Collapsible Section
 const Section = ({
   title, children, defaultOpen = true
 }: {
@@ -28,7 +26,10 @@ const Section = ({
         <span className="font-semibold text-gray-700 text-sm uppercase tracking-wide">
           {title}
         </span>
-        {open ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+        {open
+          ? <ChevronUp size={16} className="text-gray-400" />
+          : <ChevronDown size={16} className="text-gray-400" />
+        }
       </button>
       {open && (
         <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -39,10 +40,9 @@ const Section = ({
   );
 };
 
-// Individual Field
 const Field = ({
   label, value, editing, field, form, setForm,
-  type = 'text', options, readOnly = false
+  type = 'text', options, readOnly = false, fullWidth = false
 }: {
   label: string;
   value: any;
@@ -53,6 +53,7 @@ const Field = ({
   type?: string;
   options?: string[];
   readOnly?: boolean;
+  fullWidth?: boolean;
 }) => {
   const inputClass = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
 
@@ -64,7 +65,7 @@ const Field = ({
   };
 
   return (
-    <div>
+    <div className={fullWidth ? 'sm:col-span-2' : ''}>
       <p className="text-xs text-gray-400 mb-1">{label}</p>
       {editing && !readOnly ? (
         type === 'select' && options ? (
@@ -94,25 +95,29 @@ const Field = ({
             value={form[field] ?? ''}
             onChange={(e) => setForm({
               ...form,
-              [field]: type === 'number' ? parseInt(e.target.value) || 0 : e.target.value
+              [field]: type === 'number'
+                ? parseInt(e.target.value) || 0
+                : e.target.value
             })}
             className={inputClass}
           />
         )
       ) : (
-        <p className={`text-sm font-medium ${readOnly ? 'text-gray-500 italic' : 'text-gray-800'}`}>
+        <p className={`text-sm font-medium ${
+          readOnly ? 'text-gray-400 italic' : 'text-gray-800'
+        }`}>
           {displayValue()}
+          {readOnly && editing && (
+            <span className="text-xs text-gray-400 ml-2">(Managed by HR)</span>
+          )}
         </p>
-      )}
-      {readOnly && editing && (
-        <p className="text-xs text-gray-400 mt-0.5">Managed by HR</p>
       )}
     </div>
   );
 };
 
 const Profile = () => {
-  const [profile, setProfile] = useState<Teacher | null>(null);
+  const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -126,28 +131,35 @@ const Profile = () => {
       const res = await getMyProfile();
       const data = res.data;
       setProfile(data);
-
-      // Pre-fill all editable fields
-      setForm({
-        title: data.title || '',
-        phone: data.phone || '',
-        gender: data.gender || '',
-        marital_status: data.marital_status || '',
-        nationality: data.nationality || '',
-        hometown: data.hometown || '',
-        subject_specialization: data.subject_specialization || '',
-        qualification: data.qualification || '',
-        national_date_of_present_rank: data.national_date_of_present_rank
-          ? data.national_date_of_present_rank.split('T')[0] : '',
-        years_in_current_rank: data.years_in_current_rank || 0,
-        disability_status: data.disability_status || false,
-        disability_type: data.disability_type || '',
-      });
+      initForm(data);
     } catch (err) {
       toast.error('Failed to load profile');
     } finally {
       setLoading(false);
     }
+  };
+
+  const initForm = (data: any) => {
+    setForm({
+      // Personal — all editable by teacher
+      title: data.title || '',
+      phone: data.phone || '',
+      gender: data.gender || '',
+      marital_status: data.marital_status || '',
+      nationality: data.nationality || '',
+      hometown: data.hometown || '',
+      date_of_birth: data.date_of_birth
+        ? data.date_of_birth.split('T')[0] : '',
+      // Professional — editable by teacher
+      subject_specialization: data.subject_specialization || '',
+      qualification: data.qualification || '',
+      national_date_of_present_rank: data.national_date_of_present_rank
+        ? data.national_date_of_present_rank.split('T')[0] : '',
+      years_in_current_rank: data.years_in_current_rank || 0,
+      // Diversity — editable by teacher
+      disability_status: data.disability_status || false,
+      disability_type: data.disability_type || '',
+    });
   };
 
   useEffect(() => { loadProfile(); }, []);
@@ -167,21 +179,17 @@ const Profile = () => {
     setSaving(true);
     try {
       const formData = new FormData();
-
-      // Append all form fields
       Object.entries(form).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
+        if (value !== null && value !== undefined && value !== '') {
           formData.append(key, String(value));
         }
       });
-
-      // Append photo if changed
       if (photoFile) {
         formData.append('passport_photo', photoFile);
       }
-
-      await updateMyProfile(formData);
-      await loadProfile();
+      const res = await updateMyProfile(formData);
+      setProfile(res.data.teacher);
+      initForm(res.data.teacher);
       setEditing(false);
       setPhotoFile(null);
       setPhotoPreview(null);
@@ -197,33 +205,17 @@ const Profile = () => {
     setEditing(false);
     setPhotoFile(null);
     setPhotoPreview(null);
-    // Reset form to current profile
-    if (profile) {
-      setForm({
-        title: profile.title || '',
-        phone: profile.phone || '',
-        gender: profile.gender || '',
-        marital_status: (profile as any).marital_status || '',
-        nationality: (profile as any).nationality || '',
-        hometown: (profile as any).hometown || '',
-        subject_specialization: profile.subject_specialization || '',
-        qualification: profile.qualification || '',
-        national_date_of_present_rank: (profile as any).national_date_of_present_rank
-          ? (profile as any).national_date_of_present_rank.split('T')[0] : '',
-        years_in_current_rank: (profile as any).years_in_current_rank || 0,
-        disability_status: (profile as any).disability_status || false,
-        disability_type: (profile as any).disability_type || '',
-      });
-    }
+    if (profile) initForm(profile);
   };
 
   if (loading) return <Layout><Spinner /></Layout>;
 
-  const rawPhoto = (profile as any)?.passport_photo;
   const photoSrc = photoPreview ||
-    (rawPhoto ? `http://localhost:5000/${rawPhoto.replace(/^\//, '')}` : null);
+    (profile?.passport_photo
+      ? `http://localhost:5000/${profile.passport_photo}`
+      : null);
 
-  const employmentStatus = (profile as any)?.employment_status || 'active';
+  const employmentStatus = profile?.employment_status || 'active';
 
   return (
     <Layout>
@@ -233,7 +225,9 @@ const Profile = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-gray-800">My Profile</h2>
-            <p className="text-gray-500 text-sm">View and update your personal information</p>
+            <p className="text-gray-500 text-sm">
+              View and update your personal information
+            </p>
           </div>
           {!editing ? (
             <button
@@ -264,7 +258,7 @@ const Profile = () => {
           )}
         </div>
 
-        {/* Profile Banner Card */}
+        {/* Profile Banner */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="bg-gradient-to-r from-blue-900 to-blue-700 h-24 md:h-28" />
           <div className="px-5 md:px-8 pb-5">
@@ -278,6 +272,9 @@ const Profile = () => {
                       src={photoSrc}
                       alt="Passport photo"
                       className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
                     />
                   ) : (
                     <div className="bg-blue-100 rounded-full w-20 h-20 md:w-24 md:h-24 flex items-center justify-center">
@@ -308,9 +305,11 @@ const Profile = () => {
               {/* Name & Status */}
               <div className="pb-2 flex-1">
                 <h3 className="text-lg md:text-xl font-bold text-gray-800">
-                  {(profile as any)?.title} {profile?.first_name} {profile?.last_name}
+                  {profile?.title} {profile?.first_name} {profile?.last_name}
                 </h3>
-                <p className="text-gray-500 text-sm">{profile?.staff_id} · {profile?.email}</p>
+                <p className="text-gray-500 text-sm">
+                  {profile?.staff_id} · {profile?.email}
+                </p>
                 <div className="flex flex-wrap gap-2 mt-2">
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                     employmentStatus === 'active' ? 'bg-green-100 text-green-700' :
@@ -330,105 +329,104 @@ const Profile = () => {
 
             {editing && (
               <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-700 mb-2">
-                Fields marked as <span className="italic">Managed by HR</span> can only be updated by an HR officer.
-                You can update all other fields.
+                You can edit all personal details. Employment details like school,
+                district, grade and appointment dates are managed by HR.
               </div>
             )}
           </div>
         </div>
 
-        {/* Personal Information */}
+        {/* Personal Information — ALL editable by teacher */}
         <Section title="Personal Information">
           <Field label="Title" value={profile?.title} editing={editing}
-            field="title" form={form} setForm={setForm} type="select" options={TITLES} />
-          <Field label="First Name" value={profile?.first_name} editing={editing}
-            field="first_name" form={form} setForm={setForm} readOnly />
-          <Field label="Last Name" value={profile?.last_name} editing={editing}
-            field="last_name" form={form} setForm={setForm} readOnly />
-          <Field label="Date of Birth" value={(profile as any)?.date_of_birth}
-            editing={editing} field="date_of_birth" form={form} setForm={setForm}
-            type="date" readOnly />
+            field="title" form={form} setForm={setForm}
+            type="select" options={TITLES} />
+          <Field label="Date of Birth" value={profile?.date_of_birth}
+            editing={editing} field="date_of_birth"
+            form={form} setForm={setForm} type="date" />
           <Field label="Phone Number" value={profile?.phone} editing={editing}
             field="phone" form={form} setForm={setForm} type="tel" />
           <Field label="Gender" value={profile?.gender} editing={editing}
-            field="gender" form={form} setForm={setForm} type="select"
-            options={['Male', 'Female']} />
-          <Field label="Marital Status" value={(profile as any)?.marital_status}
-            editing={editing} field="marital_status" form={form} setForm={setForm}
+            field="gender" form={form} setForm={setForm}
+            type="select" options={['Male', 'Female']} />
+          <Field label="Marital Status" value={profile?.marital_status}
+            editing={editing} field="marital_status"
+            form={form} setForm={setForm}
             type="select" options={MARITAL_STATUSES} />
-          <Field label="Nationality" value={(profile as any)?.nationality}
-            editing={editing} field="nationality" form={form} setForm={setForm} />
-          <Field label="Hometown" value={(profile as any)?.hometown}
-            editing={editing} field="hometown" form={form} setForm={setForm} />
+          <Field label="Nationality" value={profile?.nationality}
+            editing={editing} field="nationality"
+            form={form} setForm={setForm} />
+          <Field label="Hometown" value={profile?.hometown}
+            editing={editing} field="hometown"
+            form={form} setForm={setForm} />
         </Section>
 
-        {/* Professional Information */}
+        {/* Professional Information — teacher edits some */}
         <Section title="Professional Information">
           <Field label="Subject Specialization" value={profile?.subject_specialization}
-            editing={editing} field="subject_specialization" form={form} setForm={setForm} />
-          <Field label="Qualification" value={profile?.qualification} editing={editing}
-            field="qualification" form={form} setForm={setForm} type="select"
-            options={QUALIFICATIONS} />
+            editing={editing} field="subject_specialization"
+            form={form} setForm={setForm} />
+          <Field label="Qualification" value={profile?.qualification}
+            editing={editing} field="qualification"
+            form={form} setForm={setForm}
+            type="select" options={QUALIFICATIONS} />
           <Field label="Current Grade / Rank" value={profile?.current_grade}
-            editing={editing} field="current_grade" form={form} setForm={setForm}
-            readOnly />
+            editing={editing} field="current_grade"
+            form={form} setForm={setForm} readOnly />
           <Field label="Years of Service" value={profile?.years_of_service}
-            editing={editing} field="years_of_service" form={form} setForm={setForm}
-            type="number" readOnly />
+            editing={editing} field="years_of_service"
+            form={form} setForm={setForm} readOnly />
           <Field label="National Date of Present Rank"
-            value={(profile as any)?.national_date_of_present_rank}
+            value={profile?.national_date_of_present_rank}
             editing={editing} field="national_date_of_present_rank"
             form={form} setForm={setForm} type="date" />
           <Field label="Years in Current Rank"
-            value={(profile as any)?.years_in_current_rank}
+            value={profile?.years_in_current_rank}
             editing={editing} field="years_in_current_rank"
             form={form} setForm={setForm} type="number" />
         </Section>
 
-        {/* Employment Details */}
+        {/* Employment Details — HR managed, teacher views only */}
         <Section title="Employment Details" defaultOpen={false}>
           <Field label="Current School" value={profile?.current_school}
-            editing={editing} field="current_school" form={form} setForm={setForm}
-            readOnly />
+            editing={editing} field="current_school"
+            form={form} setForm={setForm} readOnly />
           <Field label="Current District" value={profile?.current_district}
-            editing={editing} field="current_district" form={form} setForm={setForm}
-            readOnly />
+            editing={editing} field="current_district"
+            form={form} setForm={setForm} readOnly />
           <Field label="Current Region" value={profile?.current_region}
-            editing={editing} field="current_region" form={form} setForm={setForm}
-            readOnly />
+            editing={editing} field="current_region"
+            form={form} setForm={setForm} readOnly />
           <Field label="Date of First Appointment"
-            value={(profile as any)?.date_of_first_appointment}
+            value={profile?.date_of_first_appointment}
             editing={editing} field="date_of_first_appointment"
-            form={form} setForm={setForm} type="date" readOnly />
+            form={form} setForm={setForm} readOnly />
           <Field label="Date of Confirmation"
-            value={(profile as any)?.date_of_confirmation}
+            value={profile?.date_of_confirmation}
             editing={editing} field="date_of_confirmation"
-            form={form} setForm={setForm} type="date" readOnly />
+            form={form} setForm={setForm} readOnly />
           <Field label="Date of Current Posting"
-            value={(profile as any)?.date_of_current_posting}
+            value={profile?.date_of_current_posting}
             editing={editing} field="date_of_current_posting"
-            form={form} setForm={setForm} type="date" readOnly />
+            form={form} setForm={setForm} readOnly />
           <Field label="Employment Status"
-            value={(profile as any)?.employment_status}
+            value={profile?.employment_status}
             editing={editing} field="employment_status"
             form={form} setForm={setForm} readOnly />
         </Section>
 
-        {/* Diversity & Health */}
+        {/* Diversity & Health — teacher edits */}
         <Section title="Diversity & Health" defaultOpen={false}>
-          <div className="sm:col-span-2">
-            <Field label="Do you have a disability?"
-              value={(profile as any)?.disability_status}
-              editing={editing} field="disability_status"
-              form={form} setForm={setForm} type="checkbox" />
-          </div>
-          {(form.disability_status || (profile as any)?.disability_status) && (
-            <div className="sm:col-span-2">
-              <Field label="Disability Type / Description"
-                value={(profile as any)?.disability_type}
-                editing={editing} field="disability_type"
-                form={form} setForm={setForm} />
-            </div>
+          <Field label="Do you have a disability?"
+            value={profile?.disability_status}
+            editing={editing} field="disability_status"
+            form={form} setForm={setForm}
+            type="checkbox" fullWidth />
+          {(form.disability_status || profile?.disability_status) && (
+            <Field label="Disability Type / Description"
+              value={profile?.disability_type}
+              editing={editing} field="disability_type"
+              form={form} setForm={setForm} fullWidth />
           )}
         </Section>
 
