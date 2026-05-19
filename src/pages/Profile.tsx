@@ -210,9 +210,20 @@ const Profile = () => {
 
   if (loading) return <Layout><Spinner /></Layout>;
 
+  const normalizePhotoSrc = (photoPath: string) => {
+    const trimmed = photoPath.trim();
+    if (/^https?:\/\/localhost:5000/i.test(trimmed)) {
+      return trimmed.replace(/^https?:\/\/localhost:5000/i, '');
+    }
+    if (/^https?:\/\//i.test(trimmed)) {
+      return trimmed;
+    }
+    return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  };
+
   const photoSrc = photoPreview ||
     (profile?.passport_photo
-      ? `http://localhost:5000/${profile.passport_photo}`
+      ? normalizePhotoSrc(profile.passport_photo)
       : null);
 
   const employmentStatus = profile?.employment_status || 'active';
