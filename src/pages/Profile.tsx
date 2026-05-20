@@ -4,6 +4,7 @@ import Layout from '../components/layout/Layout';
 import Spinner from '../components/common/Spinner';
 import toast from 'react-hot-toast';
 import { User, Edit, Save, X, Camera, ChevronDown, ChevronUp } from 'lucide-react';
+import { changePassword } from '../api/auth';
 
 const TITLES = ['Mr', 'Mrs', 'Ms', 'Miss', 'Dr', 'Prof', 'Rev', 'Alhaji', 'Madam'];
 const QUALIFICATIONS = ['Certificate', 'Diploma', 'B.Ed', 'B.A', 'B.Sc', 'M.Ed', 'M.A', 'M.Sc', 'PhD'];
@@ -117,6 +118,39 @@ const Field = ({
 };
 
 const Profile = () => {
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    current_password: '',
+    new_password: '',
+    confirm_password: ''
+  });
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  const handleChangePassword = async () => {
+    if (passwordForm.new_password !== passwordForm.confirm_password) {
+      toast.error('New passwords do not match');
+      return;
+    }
+    if (passwordForm.new_password.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      await changePassword({
+        current_password: passwordForm.current_password,
+        new_password: passwordForm.new_password
+      });
+      toast.success('Password changed successfully');
+      setShowPasswordForm(false);
+      setPasswordForm({ current_password: '', new_password: '', confirm_password: '' });
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to change password');
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -440,6 +474,71 @@ const Profile = () => {
               form={form} setForm={setForm} fullWidth />
           )}
         </Section>
+
+        {/* Change Password Section */}
+<div className="border border-gray-100 rounded-xl overflow-hidden">
+  <button
+    onClick={() => setShowPasswordForm(!showPasswordForm)}
+    className="w-full flex items-center justify-between px-5 py-3 bg-gray-50 hover:bg-gray-100 transition"
+  >
+    <span className="font-semibold text-gray-700 text-sm uppercase tracking-wide">
+      Change Password
+    </span>
+    {showPasswordForm
+      ? <ChevronUp size={16} className="text-gray-400" />
+      : <ChevronDown size={16} className="text-gray-400" />
+    }
+  </button>
+  {showPasswordForm && (
+    <div className="p-5 space-y-4">
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">Current Password</label>
+        <input
+          type="password"
+          value={passwordForm.current_password}
+          onChange={(e) => setPasswordForm({ ...passwordForm, current_password: e.target.value })}
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Enter current password"
+        />
+      </div>
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">New Password</label>
+        <input
+          type="password"
+          value={passwordForm.new_password}
+          onChange={(e) => setPasswordForm({ ...passwordForm, new_password: e.target.value })}
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Enter new password (min 6 characters)"
+        />
+      </div>
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">Confirm New Password</label>
+        <input
+          type="password"
+          value={passwordForm.confirm_password}
+          onChange={(e) => setPasswordForm({ ...passwordForm, confirm_password: e.target.value })}
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Confirm new password"
+        />
+      </div>
+      <div className="flex gap-3">
+        <button
+          onClick={() => setShowPasswordForm(false)}
+          className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg text-sm"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleChangePassword}
+          disabled={changingPassword}
+          className="flex-1 bg-blue-700 hover:bg-blue-800 text-white py-2 rounded-lg text-sm disabled:opacity-50"
+        >
+          {changingPassword ? 'Changing...' : 'Change Password'}
+        </button>
+      </div>
+    </div>
+  )}
+</div>
 
       </div>
     </Layout>
