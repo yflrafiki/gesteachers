@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { checkEligibility, applyPromotion, getMyPromotions, submitPromotionDocument } from '../api/promotions';
+import { checkEligibility, getPromotionFormData, applyPromotion, getMyPromotions, submitPromotionDocument } from '../api/promotions';
 import { getMyDocuments } from '../api/documents';
 import Layout from '../components/layout/Layout';
 import Spinner from '../components/common/Spinner';
@@ -11,7 +11,9 @@ import { TrendingUp, CheckCircle, XCircle, X, FileText, Upload } from 'lucide-re
 const Promotions = () => {
   const [promotions, setPromotions] = useState<Application[]>([]);
   const [eligibility, setEligibility] = useState<any>(null);
+  const [eligibilityLoaded, setEligibilityLoaded] = useState(false);
   const [documents, setDocuments] = useState<any[]>([]);
+  const [formData, setFormData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [showDocForm, setShowDocForm] = useState<string | null>(null);
@@ -20,18 +22,51 @@ const Promotions = () => {
   const [reason, setReason] = useState('');
   const [selectedDocId, setSelectedDocId] = useState('');
 
+  const latestApplication = promotions[0] ?? null;
+  const applicationStatus = latestApplication?.status;
+  const hasActiveApplication = ['pending', 'more_info', 'approved'].includes(applicationStatus);
+
   const fetchData = async () => {
     try {
-      const [el, pr, docs] = await Promise.all([
+      const [eligibilityResult, promotionsResult, documentsResult] = await Promise.allSettled([
         checkEligibility(),
         getMyPromotions(),
         getMyDocuments(),
       ]);
-      setEligibility(el.data);
-      setPromotions(pr.data.applications);
-      setDocuments(docs.data.documents.filter((d: any) => d.ocr_status === 'completed'));
-    } catch (err) {
-      toast.error('Failed to load promotion data');
+
+      if (eligibilityResult.status === 'fulfilled') {
+        setEligibility(eligibilityResult.value.data);
+      } else {
+        console.error('Eligibility load failed:', eligibilityResult.reason);
+        toast.error(eligibilityResult.reason?.response?.data?.message || 'Failed to load eligibility data');
+      }
+      setEligibilityLoaded(true);
+
+      if (promotionsResult.status === 'fulfilled') {
+        setPromotions(promotionsResult.value.data.applications);
+      } else {
+        console.error('Promotions load failed:', promotionsResult.reason);
+        toast.error(promotionsResult.reason?.response?.data?.message || 'Failed to load promotion history');
+      }
+
+      if (documentsResult.status === 'fulfilled') {
+        setDocuments(documentsResult.value.data.documents.filter((d: any) => d.ocr_status === 'completed'));
+      } else {
+        console.error('Documents load failed:', documentsResult.reason);
+        toast.error(documentsResult.reason?.response?.data?.message || 'Failed to load documents');
+      }
+
+      try {
+        const form = await getPromotionFormData();
+        setFormData(form.data.form_fields || form.data.formData || null);
+      } catch (formErr: any) {
+        console.error('Failed to load promotion form data:', formErr, formErr?.response?.data);
+        const serverMsg = formErr?.response?.data?.message || formErr?.response?.data?.error || formErr?.message || 'Promotion form data could not be loaded';
+        toast.error(serverMsg);
+      }
+    } catch (err: any) {
+      console.error('Unexpected fetch error:', err);
+      toast.error(err.response?.data?.message || 'Failed to load promotion data');
     } finally {
       setLoading(false);
     }
@@ -90,27 +125,54 @@ const Promotions = () => {
 
         {/* Eligibility Card */}
         <div className={`rounded-xl p-5 border-2 ${
-          eligibility?.eligible
-            ? 'bg-green-50 border-green-200'
-            : 'bg-red-50 border-red-200'
+          hasActiveApplication
+            ? applicationStatus === 'approved'
+              ? 'bg-green-50 border-green-200'
+              : 'bg-yellow-50 border-yellow-200'
+            : eligibility?.eligible
+              ? 'bg-green-50 border-green-200'
+              : 'bg-red-50 border-red-200'
         }`}>
           <div className="flex items-start gap-3">
-            {eligibility?.eligible
-              ? <CheckCircle size={24} className="text-green-600 shrink-0 mt-0.5" />
-              : <XCircle size={24} className="text-red-500 shrink-0 mt-0.5" />
-            }
+            {hasActiveApplication ? (
+              applicationStatus === 'approved'
+                ? <CheckCircle size={24} className="text-green-600 shrink-0 mt-0.5" />
+                : <TrendingUp size={24} className="text-yellow-600 shrink-0 mt-0.5" />
+            ) : eligibility?.eligible ? (
+              <CheckCircle size={24} className="text-green-600 shrink-0 mt-0.5" />
+            ) : (
+              <XCircle size={24} className="text-red-500 shrink-0 mt-0.5" />
+            )}
             <div className="flex-1">
               <h3 className={`font-bold text-base ${
-                eligibility?.eligible ? 'text-green-800' : 'text-red-700'
+                hasActiveApplication
+                  ? applicationStatus === 'approved'
+                    ? 'text-green-800'
+                    : 'text-yellow-800'
+                  : eligibility?.eligible
+                    ? 'text-green-800'
+                    : 'text-red-700'
               }`}>
-                {eligibility?.eligible
-                  ? `You are eligible for promotion to ${eligibility.nextGrade}`
-                  : 'You are not eligible for promotion yet'
+                {hasActiveApplication
+                  ? applicationStatus === 'approved'
+                    ? 'Your promotion has been approved'
+                    : applicationStatus === 'pending'
+                      ? 'Promotion application pending review'
+                      : 'Promotion application requires more information'
+                  : eligibilityLoaded
+                    ? eligibility?.eligible
+                      ? `You are eligible for promotion to ${eligibility.nextGrade}`
+                      : 'You are not eligible for promotion yet'
+                    : 'Unable to confirm promotion eligibility'
                 }
               </h3>
-              {!eligibility?.eligible && (
+              {hasActiveApplication ? (
+                <p className="text-yellow-700 text-sm mt-1">Your latest application is currently <strong>{applicationStatus}</strong>.</p>
+              ) : (!eligibilityLoaded ? (
+                <p className="text-red-600 text-sm mt-1">Could not load eligibility at this time. Please refresh or try again later.</p>
+              ) : (!eligibility?.eligible && (
                 <p className="text-red-600 text-sm mt-1">{eligibility?.reason}</p>
-              )}
+              )))}
               <div className="flex flex-wrap gap-4 mt-3 text-sm">
                 <span className="text-gray-600">
                   Current Grade: <strong>{eligibility?.teacher?.current_grade}</strong>
@@ -122,7 +184,7 @@ const Promotions = () => {
                   Qualification: <strong>{eligibility?.teacher?.qualification}</strong>
                 </span>
               </div>
-              {eligibility?.eligible && (
+              {!hasActiveApplication && eligibility?.eligible && (
                 <button
                   onClick={() => setShowForm(true)}
                   className="mt-4 bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg text-sm transition"
@@ -144,6 +206,47 @@ const Promotions = () => {
                   <X size={20} className="text-gray-500" />
                 </button>
               </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                {(() => {
+                  const profile = formData ?? eligibility?.teacher ?? {};
+                  return (
+                    <>
+                      <div>
+                        <p className="text-xs text-gray-400">Name</p>
+                        <p className="font-medium text-gray-800">
+                          {profile.first_name && profile.last_name
+                            ? `${profile.first_name} ${profile.last_name}`
+                            : '—'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400">Staff ID</p>
+                        <p className="font-medium text-gray-800">{profile.staff_id || '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400">Current Grade</p>
+                        <p className="font-medium text-gray-800">{profile.current_grade || '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400">Years of Service</p>
+                        <p className="font-medium text-gray-800">
+                          {profile.years_of_service ?? '—'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400">Qualification</p>
+                        <p className="font-medium text-gray-800">{profile.qualification || '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400">Current School</p>
+                        <p className="font-medium text-gray-800">{profile.current_school || '—'}</p>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
