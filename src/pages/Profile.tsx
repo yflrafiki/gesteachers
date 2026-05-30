@@ -46,19 +46,17 @@ const Section = ({
 };
 
 // ---- Display field (read-only) ----
-const InfoField = ({ label, value }: { label: string; value: any }) => {
-  const display = () => {
+const InfoField = ({ label, value, type }: { label: string; value: any; type?: string }) => {
+  const displayValue = () => {
     if (value === null || value === undefined || value === '') return '—';
-    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-    if (typeof value === 'string' && value.includes('T') && value.includes('-')) {
-      return value.split('T')[0];
-    }
+    if (type === 'checkbox') return value ? 'Yes' : 'No';
+    if (typeof value === 'string' && value.includes('T')) return value.split('T')[0];
     return String(value);
   };
   return (
     <div>
       <p className="text-xs text-gray-400 mb-0.5">{label}</p>
-      <p className="text-sm font-medium text-gray-800">{display()}</p>
+      <p className="text-sm font-medium text-gray-800">{displayValue()}</p>
     </div>
   );
 };
