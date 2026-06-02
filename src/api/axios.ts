@@ -1,6 +1,13 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL?.replace(/\/+$/, '') ?? '';
+const rawApiUrl = import.meta.env.VITE_API_URL?.replace(/\/+$/, '');
+const defaultApiUrl = import.meta.env.PROD ? 'https://ges-backend-mhro.onrender.com' : '';
+const API_URL = rawApiUrl || defaultApiUrl;
+
+if (!rawApiUrl && import.meta.env.PROD) {
+  console.warn('VITE_API_URL is not set. Falling back to default production API URL.');
+}
+
 const API = axios.create({
   baseURL: `${API_URL}/api`,
 });
