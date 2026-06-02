@@ -4,14 +4,13 @@ import { getMyProfile } from '../api/teachers';
 import { getMyTransfers } from '../api/transfers';
 import { getMyPromotions } from '../api/promotions';
 import { getMyDocuments } from '../api/documents';
-import { getMyCredentials } from '../api/credentials';
 import Layout from '../components/layout/Layout';
 import Badge from '../components/common/Badge';
 import Spinner from '../components/common/Spinner';
-import { type Teacher, type Application, type Document, type Credential } from '../types/index';
+import { type Teacher, type Application, type Document } from '../types/index';
 import {
   User, ArrowLeftRight, TrendingUp,
-  FileText, Shield, CheckCircle, Clock, XCircle
+  FileText, Clock
 } from 'lucide-react';
 
 const StatCard = ({
@@ -39,24 +38,21 @@ const TeacherDashboard = () => {
   const [transfers, setTransfers] = useState<Application[]>([]);
   const [promotions, setPromotions] = useState<Application[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
-  const [credentials, setCredentials] = useState<Credential[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [p, t, pr, d, c] = await Promise.all([
+        const [p, t, pr, d] = await Promise.all([
           getMyProfile(),
           getMyTransfers(),
           getMyPromotions(),
           getMyDocuments(),
-          getMyCredentials(),
         ]);
         setProfile(p.data);
         setTransfers(t.data.applications);
         setPromotions(pr.data.applications);
         setDocuments(d.data.documents);
-        setCredentials(c.data.credentials);
       } catch (err) {
         console.error(err);
       } finally {
@@ -67,10 +63,6 @@ const TeacherDashboard = () => {
   }, []);
 
   if (loading) return <Layout><Spinner /></Layout>;
-
-  const verifiedCredentials = credentials.filter(
-    c => c.verification_status === 'verified'
-  ).length;
 
   const pendingTransfers = transfers.filter(t => t.status === 'pending').length;
   const pendingPromotions = promotions.filter(p => p.status === 'pending').length;
@@ -117,12 +109,6 @@ const TeacherDashboard = () => {
             label="Total Documents"
             value={documents.length}
             color="bg-purple-500"
-          />
-          <StatCard
-            icon={Shield}
-            label="Verified Credentials"
-            value={verifiedCredentials}
-            color="bg-green-500"
           />
         </div>
 
@@ -210,34 +196,6 @@ const TeacherDashboard = () => {
             )}
           </div>
 
-          {/* Credentials */}
-          <div className="bg-white rounded-xl shadow-sm p-5">
-            <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Shield size={18} className="text-green-600" />
-              Blockchain Credentials
-            </h3>
-            {credentials.length === 0 ? (
-              <p className="text-gray-400 text-sm text-center py-6">No credentials verified</p>
-            ) : (
-              <div className="space-y-3">
-                {credentials.slice(0, 4).map((cred) => (
-                  <div key={cred.id}
-                    className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                    <div className="flex items-center gap-2 min-w-0">
-                      {cred.verification_status === 'verified'
-                        ? <CheckCircle size={16} className="text-green-500 shrink-0" />
-                        : cred.verification_status === 'failed'
-                        ? <XCircle size={16} className="text-red-500 shrink-0" />
-                        : <Clock size={16} className="text-yellow-500 shrink-0" />
-                      }
-                      <p className="text-sm text-gray-700 truncate">{cred.file_name}</p>
-                    </div>
-                    <Badge status={cred.verification_status} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </Layout>

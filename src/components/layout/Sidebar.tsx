@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, User, ArrowLeftRight,
-  TrendingUp, FileText, Shield, Menu, X,
+  TrendingUp, FileText, Menu, X,
   BookOpen
 } from 'lucide-react';
 
@@ -12,8 +12,7 @@ const links = [
   { to: '/transfers', icon: ArrowLeftRight, label: 'Transfer' },
   { to: '/promotions', icon: TrendingUp, label: 'Promotion' },
   { to: '/documents', icon: FileText, label: 'Documents' },
-  { to: '/credentials', icon: Shield, label: 'Credentials' },
-   { to: '/exams', icon: BookOpen, label: 'Examinations' },
+  { to: '/exams', icon: BookOpen, label: 'Examinations' },
 ];
 
 const Sidebar = () => {

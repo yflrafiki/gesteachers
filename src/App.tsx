@@ -6,7 +6,6 @@ import Profile from './pages/Profile';
 import Transfers from './pages/Transfers';
 import Promotions from './pages/Promotions';
 import Documents from './pages/Documents';
-import Credentials from './pages/Credentials';
 import Spinner from './components/common/Spinner';
 import Exams from './pages/Exams';
 
@@ -30,7 +29,6 @@ function App() {
         <Route path="/transfers" element={<ProtectedRoute><Transfers /></ProtectedRoute>} />
         <Route path="/promotions" element={<ProtectedRoute><Promotions /></ProtectedRoute>} />
         <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
-        <Route path="/credentials" element={<ProtectedRoute><Credentials /></ProtectedRoute>} />
         <Route path="/exams" element={<ProtectedRoute><Exams /></ProtectedRoute>} />
         <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Navigate to="/login" />} />
         <Route path="*" element={<Navigate to="/" />} />
