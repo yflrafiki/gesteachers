@@ -104,6 +104,18 @@ const Exams = () => {
     }
   };
 
+  const handleViewExamResult = (exam: Exam) => {
+    setCurrentExam(exam);
+    setResult({
+      passed: exam.my_passed,
+      score: exam.my_score,
+      total_marks: exam.total_marks,
+      percentage: exam.my_percentage ?? Math.round((exam.my_score / exam.total_marks) * 100),
+      pass_mark: exam.pass_mark,
+    });
+    setView('result');
+  };
+
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
     const s = (seconds % 60).toString().padStart(2, '0');
@@ -364,7 +376,12 @@ const Exams = () => {
 
                   <div className="shrink-0">
                     {exam.my_attempt_status === 'submitted' ? (
-                      <span className="text-sm text-gray-400">Completed</span>
+                      <button
+                        onClick={() => handleViewExamResult(exam)}
+                        className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg text-sm transition"
+                      >
+                        View Result
+                      </button>
                     ) : exam.my_attempt_status === 'in_progress' ? (
                       <button
                         onClick={() => handleStartExam(exam)}
