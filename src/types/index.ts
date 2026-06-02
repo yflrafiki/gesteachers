@@ -90,6 +90,7 @@ export interface Exam {
   my_attempt_status: string | null;
   my_score: number | null;
   my_passed: boolean | null;
+  my_percentage?: number | null;
 }
 
 export interface ExamQuestion {

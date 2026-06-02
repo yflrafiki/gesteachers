@@ -106,11 +106,13 @@ const Exams = () => {
 
   const handleViewExamResult = (exam: Exam) => {
     setCurrentExam(exam);
+    const score = exam.my_score ?? 0;
+    const percentage = exam.my_percentage ?? (exam.my_score != null ? Math.round((score / exam.total_marks) * 100) : 0);
     setResult({
       passed: exam.my_passed,
-      score: exam.my_score,
+      score,
       total_marks: exam.total_marks,
-      percentage: exam.my_percentage ?? Math.round((exam.my_score / exam.total_marks) * 100),
+      percentage,
       pass_mark: exam.pass_mark,
     });
     setView('result');

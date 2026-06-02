@@ -280,16 +280,16 @@ const Profile = () => {
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="bg-gradient-to-r from-blue-900 to-blue-700 h-24 md:h-28" />
           <div className="px-5 md:px-8 pb-5">
-            <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-12 mb-4">
+            <div className="flex flex-col items-center sm:flex-row sm:items-end sm:justify-between gap-4 -mt-12 mb-4">
               {/* Photo */}
-              <div className="relative w-fit">
+              <div className="relative flex-shrink-0">
                 <div className="bg-white rounded-full p-1 shadow-lg">
                   {photoSrc ? (
                     <img src={photoSrc} alt="Passport"
-                      className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover"
+                      className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full object-cover"
                       onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                   ) : (
-                    <div className="bg-blue-100 rounded-full w-20 h-20 md:w-24 md:h-24 flex items-center justify-center">
+                    <div className="bg-blue-100 rounded-full w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 flex items-center justify-center">
                       <User size={36} className="text-blue-700" />
                     </div>
                   )}
@@ -306,12 +306,12 @@ const Profile = () => {
                 )}
               </div>
               {/* Name */}
-              <div className="pb-2 flex-1">
+              <div className="pb-2 flex-1 min-w-0 text-center sm:text-left">
                 <h3 className="text-lg md:text-xl font-bold text-gray-800">
                   {profile?.title} {profile?.first_name} {profile?.last_name}
                 </h3>
                 <p className="text-gray-500 text-sm">{profile?.staff_id} · {profile?.email}</p>
-                <div className="flex flex-wrap gap-2 mt-2">
+                <div className="flex flex-wrap gap-2 mt-2 justify-center sm:justify-start">
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                     employmentStatus === 'active' ? 'bg-green-100 text-green-700' :
                     employmentStatus === 'on_leave' ? 'bg-yellow-100 text-yellow-700' :
