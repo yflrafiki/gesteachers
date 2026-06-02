@@ -286,11 +286,11 @@ const Profile = () => {
                 <div className="bg-white rounded-full p-1 shadow-lg">
                   {photoSrc ? (
                     <img src={photoSrc} alt="Passport"
-                      className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full object-cover"
+                      className="w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full object-cover"
                       onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                   ) : (
-                    <div className="bg-blue-100 rounded-full w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 flex items-center justify-center">
-                      <User size={36} className="text-blue-700" />
+                    <div className="bg-blue-100 rounded-full w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 flex items-center justify-center">
+                      <User size={44} className="text-blue-700" />
                     </div>
                   )}
                 </div>
