@@ -277,8 +277,8 @@ const Profile = () => {
         </div>
 
         {/* Profile Banner */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-900 to-blue-700 h-24 md:h-28" />
+        <div className="bg-white rounded-xl shadow-sm overflow-visible">
+          <div className="bg-gradient-to-r from-blue-900 to-blue-700 h-28 md:h-32" />
           <div className="px-5 md:px-8 pb-5">
             <div className="flex flex-col items-center sm:flex-row sm:items-end sm:justify-between gap-4 -mt-12 mb-4">
               {/* Photo */}
