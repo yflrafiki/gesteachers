@@ -235,10 +235,13 @@ const Profile = () => {
 
   if (loading) return <Layout><Spinner /></Layout>;
 
+  const apiBaseUrl = import.meta.env.VITE_API_URL?.replace(/\/+$|\/$/g, '') || 'http://localhost:5000';
   const photoSrc = photoPreview ||
-    (profile?.passport_photo
-      ? `http://localhost:5000/${profile.passport_photo}`
-      : null);
+    (profile?.passport_photo_url
+      ? profile.passport_photo_url
+      : profile?.passport_photo
+        ? `${apiBaseUrl}/${profile.passport_photo}`
+        : null);
 
   const employmentStatus = profile?.employment_status || 'active';
 
