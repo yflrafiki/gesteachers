@@ -255,7 +255,7 @@ const Promotions = () => {
                   <textarea
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
                     rows={4}
                     placeholder="Explain why you deserve this promotion..."
                     required
@@ -293,7 +293,7 @@ const Promotions = () => {
                 </button>
               </div>
 
-              <div className="bg-blue-50 rounded-lg p-3 mb-4 text-sm text-blue-700">
+              <div className="bg-amber-50 rounded-lg p-3 mb-4 text-sm text-amber-700">
                 <p className="font-medium mb-1">How this works:</p>
                 <p>OCR will check if your name and staff ID in the document match your profile.
                   Documents that pass are automatically approved. Others go to HR for manual review.</p>
@@ -323,7 +323,7 @@ const Promotions = () => {
                             key={doc.id}
                             className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition ${
                               selectedDocId === doc.id
-                                ? 'border-blue-500 bg-blue-50'
+                                ? 'border-amber-500 bg-amber-50'
                                 : 'border-gray-200 hover:border-gray-300'
                             }`}
                           >
@@ -365,7 +365,7 @@ const Promotions = () => {
                     <button
                       onClick={handleSubmitDocument}
                       disabled={!selectedDocId || submittingDoc}
-                      className="flex-1 bg-blue-700 hover:bg-blue-800 text-white py-2.5 rounded-lg text-sm disabled:opacity-50"
+                      className="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2.5 rounded-lg text-sm disabled:opacity-50"
                     >
                       {submittingDoc ? 'Submitting...' : 'Submit Document'}
                     </button>
@@ -390,7 +390,7 @@ const Promotions = () => {
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <TrendingUp size={16} className="text-blue-600" />
+                      <TrendingUp size={16} className="text-amber-600" />
                       <span className="font-semibold text-gray-800">Promotion Application</span>
                       <Badge status={app.status} />
                     </div>
@@ -405,14 +405,14 @@ const Promotions = () => {
                     {(app.status === 'pending' || app.status === 'more_info') && (
                       <button
                         onClick={() => setShowDocForm(app.id)}
-                        className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm transition"
+                        className="flex items-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-700 px-4 py-2 rounded-lg text-sm transition"
                       >
                         <Upload size={14} />
                         Submit Document
                       </button>
                     )}
                     {app.hr_notes && (
-                      <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm text-blue-800 max-w-xs">
+                      <div className="bg-amber-50 border border-amber-100 rounded-lg px-4 py-3 text-sm text-amber-800 max-w-xs">
                         <p className="font-medium mb-1">HR Notes:</p>
                         <p>{app.hr_notes}</p>
                       </div>

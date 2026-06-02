@@ -74,7 +74,7 @@ const EditField = ({
   options?: string[];
   fullWidth?: boolean;
 }) => {
-  const cls = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
+  const cls = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500";
   return (
     <div className={fullWidth ? 'sm:col-span-2' : ''}>
       <p className="text-xs text-gray-400 mb-1">{label}</p>
@@ -258,7 +258,7 @@ const Profile = () => {
           {!editing ? (
             <button
               onClick={() => setEditing(true)}
-              className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg text-sm transition w-fit"
+              className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm transition w-fit"
             >
               <Edit size={16} /> Edit Profile
             </button>
@@ -289,15 +289,15 @@ const Profile = () => {
                       className="w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full object-cover"
                       onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                   ) : (
-                    <div className="bg-blue-100 rounded-full w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 flex items-center justify-center">
-                      <User size={44} className="text-blue-700" />
+                    <div className="bg-amber-50 rounded-full w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 flex items-center justify-center">
+                      <User size={44} className="text-amber-700" />
                     </div>
                   )}
                 </div>
                 {editing && (
                   <>
                     <button onClick={() => photoRef.current?.click()}
-                      className="absolute bottom-0 right-0 bg-blue-700 text-white rounded-full p-1.5 shadow-lg hover:bg-blue-800 transition">
+                      className="absolute bottom-0 right-0 bg-amber-600 text-white rounded-full p-1.5 shadow-lg hover:bg-amber-700 transition">
                       <Camera size={14} />
                     </button>
                     <input ref={photoRef} type="file" accept="image/*"
@@ -320,14 +320,14 @@ const Profile = () => {
                   }`}>
                     {employmentStatus.replace('_', ' ').toUpperCase()}
                   </span>
-                  <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                  <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full text-xs font-medium">
                     {profile?.current_grade}
                   </span>
                 </div>
               </div>
             </div>
             {editing && (
-              <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-700">
+              <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 text-xs text-amber-700">
                 Employment details (school, district, grade, appointment dates) are managed by HR.
                 You can update all personal and professional details.
               </div>
@@ -464,7 +464,7 @@ const Profile = () => {
                     type="password"
                     value={(pwForm as any)[field]}
                     onChange={(e) => setPwForm({ ...pwForm, [field]: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                     placeholder={label}
                   />
                 </div>
@@ -475,7 +475,7 @@ const Profile = () => {
                   Cancel
                 </button>
                 <button onClick={handleChangePassword} disabled={changingPw}
-                  className="flex-1 bg-blue-700 hover:bg-blue-800 text-white py-2 rounded-lg text-sm disabled:opacity-50">
+                  className="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-lg text-sm disabled:opacity-50">
                   {changingPw ? 'Changing...' : 'Change Password'}
                 </button>
               </div>

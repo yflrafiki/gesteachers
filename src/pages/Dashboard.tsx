@@ -75,14 +75,14 @@ const TeacherDashboard = () => {
       <div className="space-y-6">
 
         {/* Welcome Banner */}
-        <div className="bg-blue-900 text-white rounded-xl p-5 md:p-6">
+        <div className="bg-slate-900 text-white rounded-xl p-5 md:p-6">
           <h2 className="text-xl md:text-2xl font-bold">
             Welcome, {profile?.first_name} {profile?.last_name}
           </h2>
-          <p className="text-blue-200 mt-1 text-sm">
+          <p className="text-slate-300 mt-1 text-sm">
             {profile?.current_school} — {profile?.current_district}, {profile?.current_region}
           </p>
-          <div className="flex flex-wrap gap-3 mt-3 text-xs md:text-sm text-blue-100">
+          <div className="flex flex-wrap gap-3 mt-3 text-xs md:text-sm text-slate-300">
             <span>Staff ID: <strong>{profile?.staff_id}</strong></span>
             <span>Grade: <strong>{profile?.current_grade}</strong></span>
             <span>Years of Service: <strong>{profile?.years_of_service}</strong></span>
@@ -102,7 +102,7 @@ const TeacherDashboard = () => {
             icon={TrendingUp}
             label="Pending Promotions"
             value={pendingPromotions}
-            color="bg-blue-500"
+            color="bg-amber-500"
           />
           <StatCard
             icon={FileText}
@@ -118,7 +118,7 @@ const TeacherDashboard = () => {
           {/* Recent Applications */}
           <div className="bg-white rounded-xl shadow-sm p-5">
             <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Clock size={18} className="text-blue-600" />
+              <Clock size={18} className="text-amber-600" />
               Recent Applications
             </h3>
             {recentApplications.length === 0 ? (
@@ -148,7 +148,7 @@ const TeacherDashboard = () => {
           {/* Profile Summary */}
           <div className="bg-white rounded-xl shadow-sm p-5">
             <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <User size={18} className="text-blue-600" />
+              <User size={18} className="text-amber-600" />
               Profile Summary
             </h3>
             <div className="space-y-3">

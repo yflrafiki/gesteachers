@@ -84,7 +84,7 @@ const Documents = () => {
           <label className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer w-fit transition ${
             uploading
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-blue-700 hover:bg-blue-800 text-white'
+              : 'bg-amber-600 hover:bg-amber-700 text-white'
           }`}>
             <Upload size={16} />
             {uploading ? 'Uploading...' : 'Upload Document'}
@@ -98,9 +98,9 @@ const Documents = () => {
         </div>
 
         {/* How it works */}
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-800">
+        <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm text-amber-800">
           <p className="font-medium mb-2">How it works:</p>
-          <div className="space-y-1 text-blue-700">
+          <div className="space-y-1 text-amber-700">
             <p>1. Upload your certificate or document (JPG, PNG, PDF — max 10MB)</p>
             <p>2. A SHA-256 hash of your document is generated and stored</p>
             <p>3. OCR extracts your name and staff ID and validates against your profile</p>
@@ -114,7 +114,7 @@ const Documents = () => {
             <FileText size={40} className="text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500 font-medium">No documents uploaded yet</p>
             <p className="text-gray-400 text-sm mt-1">Click below to upload your first document</p>
-            <label className="mt-4 inline-flex items-center gap-2 bg-blue-50 hover:bg-blue-100 border-2 border-dashed border-blue-300 text-blue-700 px-6 py-4 rounded-xl text-sm cursor-pointer transition">
+            <label className="mt-4 inline-flex items-center gap-2 bg-amber-50 hover:bg-amber-100 border-2 border-dashed border-amber-300 text-amber-700 px-6 py-4 rounded-xl text-sm cursor-pointer transition">
               <Upload size={20} />
               Click here to upload a document
               <input type="file" className="hidden" onChange={handleUpload} disabled={uploading} />
@@ -131,7 +131,7 @@ const Documents = () => {
 
                   {/* File Info */}
                   <div className="flex items-start gap-3">
-                    <FileText size={20} className="text-blue-600 shrink-0 mt-0.5" />
+                    <FileText size={20} className="text-amber-600 shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-800 truncate">{doc.file_name}</p>
                       <p className="text-xs text-gray-400">

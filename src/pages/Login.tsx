@@ -25,13 +25,13 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-blue-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 md:p-8">
         <div className="text-center mb-8">
-          <div className="bg-blue-900 text-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+          <div className="bg-amber-600 text-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
             <span className="text-xl font-bold">GES</span>
           </div>
-          <h1 className="text-2xl font-bold text-blue-900">Teacher Portal</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Teacher Portal</h1>
           <p className="text-gray-500 text-sm mt-1">Ghana Education Service</p>
         </div>
 
@@ -74,7 +74,7 @@ const Login = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 rounded-lg transition disabled:opacity-50 text-sm"
+            className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5 rounded-lg transition disabled:opacity-50 text-sm"
           >
             {loading ? 'Logging in...' : 'Login'}
           </button>

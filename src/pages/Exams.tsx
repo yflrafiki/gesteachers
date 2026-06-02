@@ -166,7 +166,7 @@ const Exams = () => {
 
             <button
               onClick={() => setView('list')}
-              className="bg-blue-700 hover:bg-blue-800 text-white px-6 py-2.5 rounded-lg text-sm transition"
+              className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2.5 rounded-lg text-sm transition"
             >
               Back to Exams
             </button>
@@ -197,7 +197,7 @@ const Exams = () => {
               </p>
             </div>
             <div className={`flex items-center gap-2 text-lg font-bold px-4 py-2 rounded-lg ${
-              isLowTime ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+              isLowTime ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
             }`}>
               <Clock size={20} />
               {formatTime(timeLeft)}
@@ -207,7 +207,7 @@ const Exams = () => {
           {/* Progress Bar */}
           <div className="bg-gray-200 rounded-full h-2">
             <div
-              className="bg-blue-600 h-2 rounded-full transition-all"
+              className="bg-amber-600 h-2 rounded-full transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -215,7 +215,7 @@ const Exams = () => {
           {/* Question Card */}
           <div className="bg-white rounded-xl shadow-sm p-6 space-y-5">
             <div className="flex items-start gap-3">
-              <span className="bg-blue-100 text-blue-700 text-sm font-bold px-2.5 py-1 rounded-full shrink-0">
+              <span className="bg-amber-100 text-amber-700 text-sm font-bold px-2.5 py-1 rounded-full shrink-0">
                 Q{currentQ + 1}
               </span>
               <p className="text-gray-800 font-medium leading-relaxed">{q.question}</p>
@@ -232,12 +232,12 @@ const Exams = () => {
                     onClick={() => setAnswers({ ...answers, [q.id]: opt })}
                     className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 text-left transition ${
                       isSelected
-                        ? 'border-blue-600 bg-blue-50 text-blue-800'
+                        ? 'border-amber-600 bg-amber-50 text-amber-800'
                         : 'border-gray-200 hover:border-gray-300 text-gray-700'
                     }`}
                   >
                     <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-                      isSelected ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+                      isSelected ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-600'
                     }`}>
                       {opt}
                     </span>
@@ -267,7 +267,7 @@ const Exams = () => {
                   onClick={() => setCurrentQ(i)}
                   className={`w-8 h-8 rounded-full text-xs font-medium transition ${
                     i === currentQ
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-amber-600 text-white'
                       : answers[questions[i].id]
                       ? 'bg-green-100 text-green-700'
                       : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
@@ -290,7 +290,7 @@ const Exams = () => {
             ) : (
               <button
                 onClick={() => setCurrentQ(prev => Math.min(questions.length - 1, prev + 1))}
-                className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2.5 rounded-lg text-sm transition"
+                className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-lg text-sm transition"
               >
                 Next
                 <ChevronRight size={16} />
@@ -341,7 +341,7 @@ const Exams = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <BookOpen size={18} className="text-blue-600" />
+                      <BookOpen size={18} className="text-amber-600" />
                       <h3 className="font-semibold text-gray-800">{exam.title}</h3>
                       {exam.my_attempt_status === 'submitted' && (
                         <Badge status={exam.my_passed ? 'approved' : 'rejected'} />
@@ -396,7 +396,7 @@ const Exams = () => {
                       <button
                         onClick={() => handleStartExam(exam)}
                         disabled={!eligible}
-                        className="bg-blue-700 hover:bg-blue-800 text-white px-5 py-2 rounded-lg text-sm transition disabled:opacity-40"
+                        className="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-lg text-sm transition disabled:opacity-40"
                       >
                         Start Exam
                       </button>

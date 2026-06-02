@@ -67,7 +67,7 @@ const Transfers = () => {
           </div>
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg text-sm transition w-fit"
+            className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm transition w-fit"
           >
             <Plus size={16} />
             New Application
@@ -142,7 +142,7 @@ const Transfers = () => {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="flex-1 bg-blue-700 hover:bg-blue-800 text-white py-2.5 rounded-lg text-sm transition disabled:opacity-50"
+                    className="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2.5 rounded-lg text-sm transition disabled:opacity-50"
                   >
                     {submitting ? 'Submitting...' : 'Submit Application'}
                   </button>
@@ -166,7 +166,7 @@ const Transfers = () => {
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <ArrowLeftRight size={16} className="text-blue-600" />
+                      <ArrowLeftRight size={16} className="text-amber-600" />
                       <span className="font-semibold text-gray-800">Transfer Request</span>
                       <Badge status={app.status} />
                     </div>
@@ -179,7 +179,7 @@ const Transfers = () => {
                     </p>
                   </div>
                   {app.hr_notes && (
-                    <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm text-blue-800 max-w-xs">
+                    <div className="bg-amber-50 border border-amber-100 rounded-lg px-4 py-3 text-sm text-amber-800 max-w-xs">
                       <p className="font-medium mb-1">HR Notes:</p>
                       <p>{app.hr_notes}</p>
                     </div>
