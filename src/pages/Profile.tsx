@@ -278,18 +278,19 @@ const Profile = () => {
 
         {/* Profile Banner */}
         <div className="bg-white rounded-xl shadow-sm overflow-visible">
-          <div className="bg-gradient-to-r from-blue-900 to-blue-700 h-28 md:h-32" />
-          <div className="px-5 md:px-8 pb-5">
-            <div className="flex flex-col items-center sm:flex-row sm:items-end sm:justify-between gap-4 -mt-12 mb-4">
+          <div className="bg-gradient-to-r from-blue-900 to-blue-700 h-24 sm:h-28 md:h-32" />
+          <div className="px-4 sm:px-5 md:px-8 pb-5">
+            {/* Photo row — always centred on mobile, side-by-side on sm+ */}
+            <div className="flex flex-col items-center sm:flex-row sm:items-end sm:justify-between gap-3 -mt-16 sm:-mt-14 md:-mt-16 mb-4">
               {/* Photo */}
               <div className="relative flex-shrink-0">
-                <div className="bg-white rounded-full p-1 shadow-lg">
+                <div className="bg-white rounded-full p-1.5 shadow-lg">
                   {photoSrc ? (
                     <img src={photoSrc} alt="Passport"
-                      className="w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full object-cover"
+                      className="w-28 h-28 xs:w-32 xs:h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full object-cover"
                       onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                   ) : (
-                    <div className="bg-amber-50 rounded-full w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 flex items-center justify-center">
+                    <div className="bg-amber-50 rounded-full w-28 h-28 xs:w-32 xs:h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 flex items-center justify-center">
                       <User size={44} className="text-amber-700" />
                     </div>
                   )}
@@ -297,8 +298,8 @@ const Profile = () => {
                 {editing && (
                   <>
                     <button onClick={() => photoRef.current?.click()}
-                      className="absolute bottom-0 right-0 bg-amber-600 text-white rounded-full p-1.5 shadow-lg hover:bg-amber-700 transition">
-                      <Camera size={14} />
+                      className="absolute bottom-1 right-1 bg-amber-600 text-white rounded-full p-2 shadow-lg hover:bg-amber-700 transition">
+                      <Camera size={15} />
                     </button>
                     <input ref={photoRef} type="file" accept="image/*"
                       onChange={handlePhotoChange} className="hidden" />
@@ -306,11 +307,11 @@ const Profile = () => {
                 )}
               </div>
               {/* Name */}
-              <div className="pb-2 flex-1 min-w-0 text-center sm:text-left">
-                <h3 className="text-lg md:text-xl font-bold text-gray-800">
+              <div className="pb-2 flex-1 min-w-0 text-center sm:text-left mt-2 sm:mt-0">
+                <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-800 truncate">
                   {profile?.title} {profile?.first_name} {profile?.last_name}
                 </h3>
-                <p className="text-gray-500 text-sm">{profile?.staff_id} · {profile?.email}</p>
+                <p className="text-gray-500 text-xs sm:text-sm truncate">{profile?.staff_id} · {profile?.email}</p>
                 <div className="flex flex-wrap gap-2 mt-2 justify-center sm:justify-start">
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                     employmentStatus === 'active' ? 'bg-green-100 text-green-700' :

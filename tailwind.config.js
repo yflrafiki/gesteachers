@@ -6,6 +6,9 @@ export default {
   ],
   theme: {
     extend: {
+      screens: {
+        xs: '375px',
+      },
       colors: {
         gold: {
           50:  '#fdf8e1',
