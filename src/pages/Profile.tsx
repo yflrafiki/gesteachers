@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { getMyProfile, updateMyProfile } from '../api/teachers';
+import { getMyChangeRequests, createChangeRequest } from '../api/changeRequests';
 import Layout from '../components/layout/Layout';
 import Spinner from '../components/common/Spinner';
 import toast from 'react-hot-toast';
-import { changePassword } from '../api/auth';
 import {
   User, Edit, Save, X, Camera,
-  ChevronDown, ChevronUp, Lock
+  ChevronDown, ChevronUp, Clock
 } from 'lucide-react';
 
 const TITLES = ['Mr', 'Mrs', 'Ms', 'Miss', 'Dr', 'Prof', 'Rev', 'Alhaji', 'Madam'];
@@ -61,7 +61,7 @@ const InfoField = ({ label, value, type }: { label: string; value: any; type?: s
   );
 };
 
-// ---- Editable field ----
+// ---- Editable field (for the two fields teachers may change directly) ----
 const EditField = ({
   label, field, value, onChange,
   type = 'text', options, fullWidth = false
@@ -89,26 +89,106 @@ const EditField = ({
             <option key={o} value={o}>{o.replace(/_/g, ' ')}</option>
           ))}
         </select>
-      ) : type === 'checkbox' ? (
-        <div className="flex items-center gap-3 mt-1">
-          <input
-            type="checkbox"
-            checked={value ?? false}
-            onChange={(e) => onChange(field, e.target.checked)}
-            className="w-5 h-5 accent-blue-600 cursor-pointer"
-          />
-          <span className="text-sm text-gray-600">Yes</span>
-        </div>
       ) : (
         <input
           type={type}
           value={value ?? ''}
-          onChange={(e) => onChange(
-            field,
-            type === 'number' ? parseInt(e.target.value) || 0 : e.target.value
-          )}
+          onChange={(e) => onChange(field, e.target.value)}
           className={cls}
         />
+      )}
+    </div>
+  );
+};
+
+// ---- Field that requires HR approval to change ----
+const RequestChangeField = ({
+  label, value, field, type = 'text', options, pending, onRequest, fullWidth = false
+}: {
+  label: string;
+  value: any;
+  field: string;
+  type?: string;
+  options?: string[];
+  pending?: { requested_value: string };
+  onRequest: (field: string, requestedValue: string, reason: string) => Promise<void>;
+  fullWidth?: boolean;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [newValue, setNewValue] = useState('');
+  const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const displayValue = () => {
+    if (value === null || value === undefined || value === '') return '—';
+    if (type === 'checkbox') return value ? 'Yes' : 'No';
+    if (typeof value === 'string' && value.includes('T')) return value.split('T')[0];
+    return String(value);
+  };
+
+  const submit = async () => {
+    if (!newValue) { toast.error('Enter the new value'); return; }
+    setSubmitting(true);
+    try {
+      await onRequest(field, newValue, reason);
+      setOpen(false);
+      setNewValue('');
+      setReason('');
+    } catch {
+      // error toast already shown by caller
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className={fullWidth ? 'sm:col-span-2' : ''}>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-gray-400 mb-0.5">{label}</p>
+        {!pending && !open && (
+          <button onClick={() => setOpen(true)} className="text-xs text-blue-600 hover:underline whitespace-nowrap">
+            Request change
+          </button>
+        )}
+      </div>
+      <p className="text-sm font-medium text-gray-800">{displayValue()}</p>
+      {pending && (
+        <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+          <Clock size={12} /> Pending HR approval: "{pending.requested_value}"
+        </p>
+      )}
+      {open && (
+        <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-2">
+          {type === 'select' && options ? (
+            <select value={newValue} onChange={(e) => setNewValue(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+              <option value="">Select...</option>
+              {options.map(o => <option key={o} value={o}>{o.replace(/_/g, ' ')}</option>)}
+            </select>
+          ) : type === 'checkbox' ? (
+            <select value={newValue} onChange={(e) => setNewValue(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+              <option value="">Select...</option>
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </select>
+          ) : (
+            <input type={type} value={newValue} onChange={(e) => setNewValue(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="New value" />
+          )}
+          <input type="text" value={reason} onChange={(e) => setReason(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Reason (optional)" />
+          <div className="flex gap-2">
+            <button onClick={() => setOpen(false)}
+              className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-1.5 rounded-lg text-xs">
+              Cancel
+            </button>
+            <button onClick={submit} disabled={submitting}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded-lg text-xs disabled:opacity-50">
+              {submitting ? 'Submitting...' : 'Submit Request'}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -124,15 +204,7 @@ const Profile = () => {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const photoRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<any>({});
-
-  // Password change state
-  const [showPwForm, setShowPwForm] = useState(false);
-  const [pwForm, setPwForm] = useState({
-    current_password: '',
-    new_password: '',
-    confirm_password: ''
-  });
-  const [changingPw, setChangingPw] = useState(false);
+  const [myRequests, setMyRequests] = useState<any[]>([]);
 
   const loadProfile = async () => {
     try {
@@ -147,26 +219,23 @@ const Profile = () => {
     }
   };
 
+  const loadChangeRequests = async () => {
+    try {
+      const res = await getMyChangeRequests();
+      setMyRequests(res.data.requests || []);
+    } catch (err) {
+      // non-fatal — profile still usable without request history
+    }
+  };
+
   const resetForm = (data: any) => {
     setForm({
-      title: data.title || '',
-      date_of_birth: data.date_of_birth ? data.date_of_birth.split('T')[0] : '',
       phone: data.phone || '',
-      gender: data.gender || '',
       marital_status: data.marital_status || '',
-      nationality: data.nationality || '',
-      hometown: data.hometown || '',
-      subject_specialization: data.subject_specialization || '',
-      qualification: data.qualification || '',
-      national_date_of_present_rank: data.national_date_of_present_rank
-        ? data.national_date_of_present_rank.split('T')[0] : '',
-      years_in_current_rank: data.years_in_current_rank || 0,
-      disability_status: data.disability_status || false,
-      disability_type: data.disability_type || '',
     });
   };
 
-  useEffect(() => { loadProfile(); }, []);
+  useEffect(() => { loadProfile(); loadChangeRequests(); }, []);
 
   const update = (field: string, value: any) =>
     setForm((prev: any) => ({ ...prev, [field]: value }));
@@ -210,26 +279,14 @@ const Profile = () => {
     if (profile) resetForm(profile);
   };
 
-  const handleChangePassword = async () => {
-    if (pwForm.new_password !== pwForm.confirm_password) {
-      toast.error('New passwords do not match'); return;
-    }
-    if (pwForm.new_password.length < 6) {
-      toast.error('Password must be at least 6 characters'); return;
-    }
-    setChangingPw(true);
+  const handleRequestChange = async (field: string, requestedValue: string, reason: string) => {
     try {
-      await changePassword({
-        current_password: pwForm.current_password,
-        new_password: pwForm.new_password
-      });
-      toast.success('Password changed successfully');
-      setShowPwForm(false);
-      setPwForm({ current_password: '', new_password: '', confirm_password: '' });
+      await createChangeRequest({ field_name: field, requested_value: requestedValue, reason });
+      toast.success('Change request submitted for HR approval');
+      await loadChangeRequests();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to change password');
-    } finally {
-      setChangingPw(false);
+      toast.error(err.response?.data?.message || 'Failed to submit change request');
+      throw err;
     }
   };
 
@@ -245,6 +302,9 @@ const Profile = () => {
 
   const employmentStatus = profile?.employment_status || 'active';
 
+  const pendingByField: Record<string, any> = {};
+  myRequests.filter(r => r.status === 'pending').forEach(r => { pendingByField[r.field_name] = r; });
+
   return (
     <Layout>
       <div className="space-y-5 max-w-4xl mx-auto">
@@ -253,14 +313,14 @@ const Profile = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-gray-800">My Profile</h2>
-            <p className="text-gray-500 text-sm">View and update your personal information</p>
+            <p className="text-gray-500 text-sm">View your information and request HR-approved changes</p>
           </div>
           {!editing ? (
             <button
               onClick={() => setEditing(true)}
               className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm transition w-fit"
             >
-              <Edit size={16} /> Edit Profile
+              <Edit size={16} /> Edit Phone / Marital Status
             </button>
           ) : (
             <div className="flex gap-2">
@@ -280,9 +340,7 @@ const Profile = () => {
         <div className="bg-white rounded-xl shadow-sm overflow-visible">
           <div className="bg-gradient-to-r from-blue-900 to-blue-700 h-24 sm:h-28 md:h-32" />
           <div className="px-4 sm:px-5 md:px-8 pb-5">
-            {/* Photo row — always centred on mobile, side-by-side on sm+ */}
             <div className="flex flex-col items-center sm:flex-row sm:items-end sm:justify-between gap-3 -mt-16 sm:-mt-14 md:-mt-16 mb-4">
-              {/* Photo */}
               <div className="relative flex-shrink-0">
                 <div className="bg-white rounded-full p-1.5 shadow-lg">
                   {photoSrc ? (
@@ -306,7 +364,6 @@ const Profile = () => {
                   </>
                 )}
               </div>
-              {/* Name */}
               <div className="pb-2 flex-1 min-w-0 text-center sm:text-left mt-2 sm:mt-0">
                 <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-800 truncate">
                   {profile?.title} {profile?.first_name} {profile?.last_name}
@@ -329,8 +386,8 @@ const Profile = () => {
             </div>
             {editing && (
               <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 text-xs text-amber-700">
-                Employment details (school, district, grade, appointment dates) are managed by HR.
-                You can update all personal and professional details.
+                You can directly update your phone number, marital status, and photo. All other details
+                require a change request approved by HR — use "Request change" next to each field below.
               </div>
             )}
           </div>
@@ -338,67 +395,51 @@ const Profile = () => {
 
         {/* Personal Information */}
         <Section title="Personal Information">
+          <RequestChangeField label="Title" field="title" value={profile?.title}
+            type="select" options={TITLES} pending={pendingByField['title']} onRequest={handleRequestChange} />
+          <RequestChangeField label="Date of Birth" field="date_of_birth" value={profile?.date_of_birth}
+            type="date" pending={pendingByField['date_of_birth']} onRequest={handleRequestChange} />
           {editing ? (
-            <>
-              <EditField label="Title" field="title" value={form.title}
-                onChange={update} type="select" options={TITLES} />
-              <EditField label="Date of Birth" field="date_of_birth"
-                value={form.date_of_birth} onChange={update} type="date" />
-              <EditField label="Phone Number" field="phone"
-                value={form.phone} onChange={update} type="tel" />
-              <EditField label="Gender" field="gender" value={form.gender}
-                onChange={update} type="select" options={['Male', 'Female']} />
-              <EditField label="Marital Status" field="marital_status"
-                value={form.marital_status} onChange={update}
-                type="select" options={MARITAL_STATUSES} />
-              <EditField label="Nationality" field="nationality"
-                value={form.nationality} onChange={update} />
-              <EditField label="Hometown" field="hometown"
-                value={form.hometown} onChange={update} />
-            </>
+            <EditField label="Phone Number" field="phone" value={form.phone} onChange={update} type="tel" />
           ) : (
-            <>
-              <InfoField label="Title" value={profile?.title} />
-              <InfoField label="Date of Birth" value={profile?.date_of_birth} />
-              <InfoField label="Phone Number" value={profile?.phone} />
-              <InfoField label="Gender" value={profile?.gender} />
-              <InfoField label="Marital Status" value={profile?.marital_status} />
-              <InfoField label="Nationality" value={profile?.nationality} />
-              <InfoField label="Hometown" value={profile?.hometown} />
-            </>
+            <InfoField label="Phone Number" value={profile?.phone} />
           )}
+          <RequestChangeField label="Gender" field="gender" value={profile?.gender}
+            type="select" options={['Male', 'Female']} pending={pendingByField['gender']} onRequest={handleRequestChange} />
+          {editing ? (
+            <EditField label="Marital Status" field="marital_status" value={form.marital_status}
+              onChange={update} type="select" options={MARITAL_STATUSES} />
+          ) : (
+            <InfoField label="Marital Status" value={profile?.marital_status} />
+          )}
+          <RequestChangeField label="Nationality" field="nationality" value={profile?.nationality}
+            pending={pendingByField['nationality']} onRequest={handleRequestChange} />
+          <RequestChangeField label="Hometown (Where you're from)" field="hometown" value={profile?.hometown}
+            pending={pendingByField['hometown']} onRequest={handleRequestChange} />
+          <RequestChangeField label="House Number" field="house_number" value={profile?.house_number}
+            pending={pendingByField['house_number']} onRequest={handleRequestChange} />
+        </Section>
+
+        {/* Identification */}
+        <Section title="Identification" defaultOpen={false}>
+          <RequestChangeField label="Ghana Card Number" field="ghana_card_number" value={profile?.ghana_card_number}
+            pending={pendingByField['ghana_card_number']} onRequest={handleRequestChange} />
+          <RequestChangeField label="Ghana Card Issue Date" field="ghana_card_issue_date" type="date"
+            value={profile?.ghana_card_issue_date} pending={pendingByField['ghana_card_issue_date']} onRequest={handleRequestChange} />
+          <RequestChangeField label="Ghana Card Expiry Date" field="ghana_card_expiry_date" type="date"
+            value={profile?.ghana_card_expiry_date} pending={pendingByField['ghana_card_expiry_date']} onRequest={handleRequestChange} />
         </Section>
 
         {/* Professional Information */}
         <Section title="Professional Information">
-          {editing ? (
-            <>
-              <EditField label="Subject Specialization" field="subject_specialization"
-                value={form.subject_specialization} onChange={update} />
-              <EditField label="Qualification" field="qualification"
-                value={form.qualification} onChange={update}
-                type="select" options={QUALIFICATIONS} />
-              <InfoField label="Current Grade / Rank (HR managed)" value={profile?.current_grade} />
-              <InfoField label="Years of Service (HR managed)" value={profile?.years_of_service} />
-              <EditField label="National Date of Present Rank"
-                field="national_date_of_present_rank"
-                value={form.national_date_of_present_rank} onChange={update} type="date" />
-              <EditField label="Years in Current Rank"
-                field="years_in_current_rank"
-                value={form.years_in_current_rank} onChange={update} type="number" />
-            </>
-          ) : (
-            <>
-              <InfoField label="Subject Specialization" value={profile?.subject_specialization} />
-              <InfoField label="Qualification" value={profile?.qualification} />
-              <InfoField label="Current Grade / Rank" value={profile?.current_grade} />
-              <InfoField label="Years of Service" value={profile?.years_of_service} />
-              <InfoField label="National Date of Present Rank"
-                value={profile?.national_date_of_present_rank} />
-              <InfoField label="Years in Current Rank"
-                value={profile?.years_in_current_rank} />
-            </>
-          )}
+          <RequestChangeField label="Subject Specialization" field="subject_specialization"
+            value={profile?.subject_specialization} pending={pendingByField['subject_specialization']} onRequest={handleRequestChange} />
+          <RequestChangeField label="Qualification" field="qualification" value={profile?.qualification}
+            type="select" options={QUALIFICATIONS} pending={pendingByField['qualification']} onRequest={handleRequestChange} />
+          <InfoField label="Current Grade / Rank (HR managed)" value={profile?.current_grade} />
+          <InfoField label="Years of Service (HR managed)" value={profile?.years_of_service} />
+          <InfoField label="National Date of Present Rank (HR managed)" value={profile?.national_date_of_present_rank} />
+          <InfoField label="Years in Current Rank (HR managed)" value={profile?.years_in_current_rank} />
         </Section>
 
         {/* Employment Details — always read only for teacher */}
@@ -414,75 +455,37 @@ const Profile = () => {
 
         {/* Diversity & Health */}
         <Section title="Diversity & Health" defaultOpen={false}>
-          {editing ? (
-            <>
-              <EditField label="Do you have a disability?" field="disability_status"
-                value={form.disability_status} onChange={update}
-                type="checkbox" fullWidth />
-              {form.disability_status && (
-                <EditField label="Disability Type / Description"
-                  field="disability_type" value={form.disability_type}
-                  onChange={update} fullWidth />
-              )}
-            </>
-          ) : (
-            <>
-              <InfoField label="Disability Status" value={profile?.disability_status} />
-              {profile?.disability_status && (
-                <InfoField label="Disability Type" value={profile?.disability_type} />
-              )}
-            </>
-          )}
+          <RequestChangeField label="Do you have a disability?" field="disability_status"
+            value={profile?.disability_status} type="checkbox" fullWidth
+            pending={pendingByField['disability_status']} onRequest={handleRequestChange} />
+          <RequestChangeField label="Disability Type / Description" field="disability_type"
+            value={profile?.disability_type} fullWidth
+            pending={pendingByField['disability_type']} onRequest={handleRequestChange} />
         </Section>
 
-        {/* Change Password */}
-        <div className="border border-gray-100 rounded-xl overflow-hidden">
-          <button
-            onClick={() => setShowPwForm(!showPwForm)}
-            className="w-full flex items-center justify-between px-5 py-3 bg-gray-50 hover:bg-gray-100 transition"
-          >
-            <div className="flex items-center gap-2">
-              <Lock size={16} className="text-gray-500" />
-              <span className="font-semibold text-gray-700 text-sm uppercase tracking-wide">
-                Change Password
-              </span>
-            </div>
-            {showPwForm
-              ? <ChevronUp size={16} className="text-gray-400" />
-              : <ChevronDown size={16} className="text-gray-400" />
-            }
-          </button>
-          {showPwForm && (
-            <div className="p-5 space-y-4">
-              {[
-                { label: 'Current Password', field: 'current_password' },
-                { label: 'New Password', field: 'new_password' },
-                { label: 'Confirm New Password', field: 'confirm_password' },
-              ].map(({ label, field }) => (
-                <div key={field}>
-                  <p className="text-xs text-gray-400 mb-1">{label}</p>
-                  <input
-                    type="password"
-                    value={(pwForm as any)[field]}
-                    onChange={(e) => setPwForm({ ...pwForm, [field]: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    placeholder={label}
-                  />
+        {/* Change Request History */}
+        {myRequests.length > 0 && (
+          <Section title="My Change Requests" defaultOpen={false}>
+            <div className="sm:col-span-2 space-y-2">
+              {myRequests.map((r) => (
+                <div key={r.id} className="flex items-center justify-between border border-gray-100 rounded-lg px-4 py-2">
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">{r.field_name.replace(/_/g, ' ')}</p>
+                    <p className="text-xs text-gray-500">"{r.current_value || '—'}" → "{r.requested_value}"</p>
+                    {r.hr_notes && <p className="text-xs text-gray-400 mt-0.5">HR notes: {r.hr_notes}</p>}
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    r.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                    r.status === 'approved' ? 'bg-green-100 text-green-700' :
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    {r.status.toUpperCase()}
+                  </span>
                 </div>
               ))}
-              <div className="flex gap-3">
-                <button onClick={() => setShowPwForm(false)}
-                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg text-sm">
-                  Cancel
-                </button>
-                <button onClick={handleChangePassword} disabled={changingPw}
-                  className="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-lg text-sm disabled:opacity-50">
-                  {changingPw ? 'Changing...' : 'Change Password'}
-                </button>
-              </div>
             </div>
-          )}
-        </div>
+          </Section>
+        )}
 
       </div>
     </Layout>

@@ -16,8 +16,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    const savedToken = localStorage.getItem('token');
+    const savedUser = sessionStorage.getItem('user');
+    const savedToken = sessionStorage.getItem('token');
     if (savedUser && savedToken) {
       setUser(JSON.parse(savedUser));
     }
@@ -32,15 +32,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       throw new Error('This portal is for teachers only');
     }
 
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
+    sessionStorage.setItem('token', token);
+    sessionStorage.setItem('user', JSON.stringify(user));
     setUser(user);
     return user;
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
     setUser(null);
   };
 

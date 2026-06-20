@@ -7,7 +7,7 @@ const Layout = ({ children }: { children: ReactNode }) => (
     <Navbar />
     <div className="flex flex-1 relative">
       <Sidebar />
-      <main className="flex-1 p-4 md:p-6 min-w-0" style={{ backgroundColor: '#FAF7F0' }}>
+      <main className="flex-1 p-4 md:p-6 min-w-0" style={{ backgroundColor: '#F7F5EF' }}>
         {children}
       </main>
     </div>

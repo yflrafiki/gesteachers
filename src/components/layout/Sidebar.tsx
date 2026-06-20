@@ -32,8 +32,8 @@ const Sidebar = () => {
           }
           style={({ isActive }) =>
             isActive
-              ? { backgroundColor: '#fdf8e1', color: '#B8860B', borderLeftColor: '#B8860B' }
-              : { color: '#3d2200' }
+              ? { backgroundColor: '#FBF3D9', color: '#C49A1A', borderLeftColor: '#C49A1A' }
+              : { color: '#1F4D30' }
           }
         >
           <Icon size={18} />
@@ -48,7 +48,7 @@ const Sidebar = () => {
       {/* Mobile toggle button */}
       <button
         className="md:hidden fixed bottom-4 right-4 z-50 text-white p-3 rounded-full shadow-lg"
-        style={{ backgroundColor: '#B8860B' }}
+        style={{ backgroundColor: '#C49A1A' }}
         onClick={() => setOpen(!open)}
       >
         {open ? <X size={22} /> : <Menu size={22} />}
@@ -62,10 +62,10 @@ const Sidebar = () => {
         >
           <div
             className="w-64 h-full shadow-xl"
-            style={{ backgroundColor: '#FAF7F0' }}
+            style={{ backgroundColor: '#F7F5EF' }}
             onClick={e => e.stopPropagation()}
           >
-            <div className="text-white px-4 py-4" style={{ backgroundColor: '#1C0A00' }}>
+            <div className="text-white px-4 py-4" style={{ backgroundColor: '#0D2818' }}>
               <p className="font-bold">Menu</p>
             </div>
             {navLinks}
@@ -76,7 +76,7 @@ const Sidebar = () => {
       {/* Desktop sidebar */}
       <aside
         className="hidden md:block w-64 shadow-md min-h-screen"
-        style={{ backgroundColor: '#FAF7F0', borderRight: '1px solid #e6c84a' }}
+        style={{ backgroundColor: '#F7F5EF', borderRight: '1px solid #E8C547' }}
       >
         {navLinks}
       </aside>

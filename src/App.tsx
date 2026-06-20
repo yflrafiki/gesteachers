@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
+import VerifyEmail from './pages/VerifyEmail';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
+import Account from './pages/Account';
 import Transfers from './pages/Transfers';
 import Promotions from './pages/Promotions';
 import Documents from './pages/Documents';
@@ -24,8 +26,10 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
         <Route path="/transfers" element={<ProtectedRoute><Transfers /></ProtectedRoute>} />
         <Route path="/promotions" element={<ProtectedRoute><Promotions /></ProtectedRoute>} />
         <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />

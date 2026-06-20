@@ -10,23 +10,25 @@ export default {
         xs: '375px',
       },
       colors: {
+        // Drawn from the actual GES/Ghana coat of arms (eagle gold + shield
+        // green) rather than a generic amber/brown palette.
         gold: {
-          50:  '#fdf8e1',
-          100: '#f9efb4',
-          300: '#e6c84a',
-          500: '#C9A227',
-          600: '#B8860B',
-          700: '#9a6f09',
+          50:  '#FBF3D9',
+          100: '#F7E7A8',
+          300: '#E8C547',
+          500: '#D4AF37',
+          600: '#C49A1A',
+          700: '#9C7A0A',
         },
         brown: {
-          900: '#1C0A00',
-          800: '#2D1A00',
-          700: '#3d2200',
+          900: '#0D2818',
+          800: '#163D24',
+          700: '#1F4D30',
         },
         cream: {
-          50:  '#FFFEF9',
-          100: '#FAF7F0',
-          200: '#F5F0E8',
+          50:  '#FFFEFA',
+          100: '#F7F5EF',
+          200: '#EFEAE0',
         }
       }
     },

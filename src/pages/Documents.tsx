@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { uploadDocument, getMyDocuments } from '../api/documents';
-import { submitForVerification } from '../api/credentials';
+import { getMyCredentials } from '../api/credentials';
 import Layout from '../components/layout/Layout';
 import Spinner from '../components/common/Spinner';
 import Badge from '../components/common/Badge';
-import { type Document } from '../types/index';
+import { type Document, type Credential } from '../types/index';
 import toast from 'react-hot-toast';
 import {
   Upload, FileText, Shield, Eye, X,
@@ -13,23 +13,58 @@ import {
 
 const Documents = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [credentials, setCredentials] = useState<Record<string, Credential>>({});
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [selected, setSelected] = useState<any | null>(null);
-  const [verifying, setVerifying] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchDocuments = async () => {
     try {
       const res = await getMyDocuments();
       setDocuments(res.data.documents);
+      return res.data.documents as Document[];
     } catch (err) {
       toast.error('Failed to load documents');
+      return [];
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchDocuments(); }, []);
+  const fetchCredentials = async () => {
+    try {
+      const res = await getMyCredentials();
+      const map: Record<string, Credential> = {};
+      res.data.credentials.forEach((c: Credential) => { map[c.document_id] = c; });
+      setCredentials(map);
+      return map;
+    } catch (err) {
+      return {};
+    }
+  };
+
+  useEffect(() => {
+    fetchDocuments();
+    fetchCredentials();
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, []);
+
+  // After an upload, verification (blockchain anchor + OCR) runs automatically
+  // on the server — poll briefly so the result shows up without a manual action.
+  const pollUntilProcessed = (documentId: string) => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    let attempts = 0;
+    pollRef.current = setInterval(async () => {
+      attempts += 1;
+      const docs = await fetchDocuments();
+      await fetchCredentials();
+      const doc = docs.find((d) => d.id === documentId);
+      if ((doc && doc.ocr_status !== 'pending') || attempts >= 10) {
+        if (pollRef.current) clearInterval(pollRef.current);
+      }
+    }, 1500);
+  };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -38,27 +73,15 @@ const Documents = () => {
     formData.append('document', file);
     setUploading(true);
     try {
-      await uploadDocument(formData);
-      toast.success('Document uploaded! OCR processing started.');
-      fetchDocuments();
+      const res = await uploadDocument(formData);
+      toast.success('Document uploaded! Verifying automatically...');
+      await fetchDocuments();
+      pollUntilProcessed(res.data.document.id);
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Upload failed');
     } finally {
       setUploading(false);
       e.target.value = '';
-    }
-  };
-
-  const handleVerify = async (documentId: string) => {
-    setVerifying(documentId);
-    try {
-      await submitForVerification(documentId);
-      toast.success('Submitted for blockchain verification!');
-      fetchDocuments();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Verification failed');
-    } finally {
-      setVerifying(null);
     }
   };
 
@@ -102,9 +125,9 @@ const Documents = () => {
           <p className="font-medium mb-2">How it works:</p>
           <div className="space-y-1 text-amber-700">
             <p>1. Upload your certificate or document (JPG, PNG, PDF — max 10MB)</p>
-            <p>2. A SHA-256 hash of your document is generated and stored</p>
-            <p>3. OCR extracts your name and staff ID and validates against your profile</p>
-            <p>4. Submit for blockchain verification — GES, GTEC and NTC nodes confirm it</p>
+            <p>2. Its SHA-256 hash is automatically anchored on the blockchain — a permanent, tamper-proof record</p>
+            <p>3. OCR then extracts your name and staff ID and checks them against your profile</p>
+            <p>4. That's it — no extra steps. You'll see the result below as soon as it's done</p>
           </div>
         </div>
 
@@ -125,6 +148,7 @@ const Documents = () => {
             {documents.map((doc) => {
               const validation = parseValidation(doc);
               const isValidated = validation?.nameMatch || validation?.staffIdMatch;
+              const credential = credentials[doc.id];
 
               return (
                 <div key={doc.id} className="bg-white rounded-xl shadow-sm p-5 space-y-3">
@@ -156,6 +180,36 @@ const Documents = () => {
                       <p className="text-xs font-mono text-gray-600 truncate">
                         {(doc as any).document_hash}
                       </p>
+                    </div>
+                  )}
+
+                  {/* Blockchain Verification Result — automatic, no action needed */}
+                  {credential ? (
+                    <div className={`rounded-lg p-3 text-xs flex items-start gap-2 ${
+                      credential.verification_status === 'verified'
+                        ? 'bg-green-50 border border-green-100'
+                        : 'bg-red-50 border border-red-100'
+                    }`}>
+                      <Shield size={14} className={`shrink-0 mt-0.5 ${
+                        credential.verification_status === 'verified' ? 'text-green-600' : 'text-red-600'
+                      }`} />
+                      <div>
+                        <p className={`font-medium ${
+                          credential.verification_status === 'verified' ? 'text-green-700' : 'text-red-700'
+                        }`}>
+                          {credential.verification_status === 'verified'
+                            ? 'Verified — anchored on the blockchain and matches your profile'
+                            : 'Not verified — blockchain anchor or profile match failed'}
+                        </p>
+                        {credential.blockchain_tx_id && (
+                          <p className="text-gray-500 font-mono mt-0.5">{credential.blockchain_tx_id}</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : doc.ocr_status === 'completed' && (
+                    <div className="rounded-lg p-3 text-xs flex items-center gap-2 bg-gray-50 border border-gray-100 text-gray-500">
+                      <Shield size={14} className="shrink-0" />
+                      Verification still in progress — refresh in a moment
                     </div>
                   )}
 
@@ -207,20 +261,10 @@ const Documents = () => {
                         View OCR Text
                       </button>
                     )}
-                    {doc.ocr_status === 'completed' && (
-                      <button
-                        onClick={() => handleVerify(doc.id)}
-                        disabled={verifying === doc.id}
-                        className="flex items-center gap-1 text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg transition disabled:opacity-50"
-                      >
-                        <Shield size={14} />
-                        {verifying === doc.id ? 'Verifying...' : 'Verify on Blockchain'}
-                      </button>
-                    )}
                     {doc.ocr_status === 'pending' && (
                       <span className="text-xs text-yellow-600 flex items-center gap-1">
                         <span className="animate-pulse">●</span>
-                        OCR processing...
+                        Anchoring on blockchain and running OCR...
                       </span>
                     )}
                     {doc.ocr_status === 'failed' && (
@@ -261,7 +305,7 @@ const Documents = () => {
                     <p className={`font-semibold mb-1 ${isValid ? 'text-green-700' : 'text-yellow-700'}`}>
                       Profile Validation Results
                     </p>
-                    <div className="grid grid-cols-2 gap-2 mb-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
                       <div className="flex items-center gap-1">
                         {val.nameMatch
                           ? <CheckCircle size={12} className="text-green-500" />
@@ -287,7 +331,7 @@ const Documents = () => {
               {/* Document hash */}
               {selected.document_hash && (
                 <div className="bg-gray-50 rounded-lg px-3 py-2 mb-4">
-                  <p className="text-xs text-gray-400 mb-0.5">SHA-256 Hash (stored on blockchain)</p>
+                  <p className="text-xs text-gray-400 mb-0.5">SHA-256 Hash (anchored on blockchain)</p>
                   <p className="text-xs font-mono text-gray-700 break-all">{selected.document_hash}</p>
                 </div>
               )}

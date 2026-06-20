@@ -1,71 +1,36 @@
-import { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, User, Menu, X } from 'lucide-react';
+import { User } from 'lucide-react';
+import gesLogo from '../../assets/ges-logo.png';
 
 const Navbar = () => {
-  const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
 
   return (
     <nav
       className="text-white px-4 md:px-6 py-4 flex justify-between items-center shadow-lg relative"
-      style={{ backgroundColor: '#1C0A00' }}
+      style={{ backgroundColor: '#0D2818' }}
     >
-      <div>
-        <h1 className="font-bold text-base md:text-lg">GES Teacher Portal</h1>
-        <p className="text-xs" style={{ color: '#e6c84a' }}>Ghana Education Service</p>
-      </div>
-
-      {/* Desktop */}
-      <div className="hidden md:flex items-center gap-4">
-        <div className="flex items-center gap-2 text-sm">
-          <User size={16} />
-          <span>{user?.email}</span>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-white p-0.5">
+          {/* Source logo is the full GES wordmark (crest + text); crop to just the crest for a compact badge */}
+          <img src={gesLogo} alt="GES" className="h-full w-auto block" />
         </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm transition"
-          style={{ backgroundColor: '#B8860B' }}
-          onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#9a6f09')}
-          onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#B8860B')}
-        >
-          <LogOut size={16} />
-          Logout
-        </button>
+        <div>
+          <h1 className="font-bold text-base md:text-lg">GES Teacher Portal</h1>
+          <p className="text-xs" style={{ color: '#E8C547' }}>Ghana Education Service</p>
+        </div>
       </div>
 
-      {/* Mobile menu button */}
-      <button className="md:hidden" onClick={() => setMenuOpen(!menuOpen)}>
-        {menuOpen ? <X size={24} /> : <Menu size={24} />}
+      <button
+        onClick={() => navigate('/account')}
+        title="My Account"
+        className="flex items-center justify-center w-9 h-9 rounded-full transition"
+        style={{ backgroundColor: '#C49A1A' }}
+        onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#9C7A0A')}
+        onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#C49A1A')}
+      >
+        <User size={18} />
       </button>
-
-      {/* Mobile dropdown */}
-      {menuOpen && (
-        <div
-          className="absolute top-16 left-0 right-0 z-50 px-4 py-4 flex flex-col gap-3 md:hidden shadow-lg"
-          style={{ backgroundColor: '#1C0A00' }}
-        >
-          <div className="flex items-center gap-2 text-sm">
-            <User size={16} />
-            <span>{user?.email}</span>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm w-full"
-            style={{ backgroundColor: '#B8860B' }}
-          >
-            <LogOut size={16} />
-            Logout
-          </button>
-        </div>
-      )}
     </nav>
   );
 };

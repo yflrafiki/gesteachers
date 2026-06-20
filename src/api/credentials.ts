@@ -1,6 +1,5 @@
 import API from './axios';
 
-export const submitForVerification = (documentId: string) =>
-  API.post(`/credentials/verify/${documentId}`);
-
+// Verification is fully automatic on upload (blockchain hash anchor + OCR
+// profile check) — there is no manual "submit for verification" action.
 export const getMyCredentials = () => API.get('/credentials/my');
