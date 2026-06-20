@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import gesLogo from '../assets/ges-logo.png';
+import { Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
   const { login } = useAuth();
@@ -60,7 +61,7 @@ const Login = () => {
                 type={showPassword ? 'text' : 'password'}
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                className="w-full rounded-lg px-4 py-2.5 pr-20 focus:outline-none focus:ring-2 text-sm"
+                className="w-full rounded-lg px-4 py-2.5 pr-11 focus:outline-none focus:ring-2 text-sm"
                 style={{ border: '1px solid #D4AF37', color: '#0D2818', backgroundColor: '#FFFEFA' }}
                 placeholder="Enter your password"
                 required
@@ -68,10 +69,11 @@ const Login = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute inset-y-0 right-0 flex items-center px-4 text-sm font-medium focus:outline-none"
+                title={showPassword ? 'Hide password' : 'Show password'}
+                className="absolute inset-y-0 right-0 flex items-center px-3 focus:outline-none"
                 style={{ color: '#C49A1A' }}
               >
-                {showPassword ? 'Hide' : 'Show'}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>

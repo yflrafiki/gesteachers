@@ -4,12 +4,13 @@ import Layout from '../components/layout/Layout';
 import { useAuth } from '../context/AuthContext';
 import { changePassword } from '../api/auth';
 import toast from 'react-hot-toast';
-import { User, Lock, ChevronDown, ChevronUp, LogOut } from 'lucide-react';
+import { User, Lock, ChevronDown, ChevronUp, LogOut, Eye, EyeOff } from 'lucide-react';
 
 const Account = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showPwForm, setShowPwForm] = useState(true);
+  const [showPasswords, setShowPasswords] = useState(false);
   const [pwForm, setPwForm] = useState({
     current_password: '',
     new_password: '',
@@ -90,13 +91,23 @@ const Account = () => {
               ].map(({ label, field }) => (
                 <div key={field}>
                   <p className="text-xs text-gray-400 mb-1">{label}</p>
-                  <input
-                    type="password"
-                    value={(pwForm as any)[field]}
-                    onChange={(e) => setPwForm({ ...pwForm, [field]: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    placeholder={label}
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPasswords ? 'text' : 'password'}
+                      value={(pwForm as any)[field]}
+                      onChange={(e) => setPwForm({ ...pwForm, [field]: e.target.value })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      placeholder={label}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords((prev) => !prev)}
+                      title={showPasswords ? 'Hide passwords' : 'Show passwords'}
+                      className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600 focus:outline-none"
+                    >
+                      {showPasswords ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
               ))}
               <button onClick={handleChangePassword} disabled={changingPw}
