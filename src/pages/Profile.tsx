@@ -201,7 +201,7 @@ const Profile = () => {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const photoRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<any>({});
   const [myRequests, setMyRequests] = useState<any[]>([]);
@@ -240,12 +240,27 @@ const Profile = () => {
   const update = (field: string, value: any) =>
     setForm((prev: any) => ({ ...prev, [field]: value }));
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Photo upload is independent of the "Edit Phone / Marital Status" form —
+  // selecting a file uploads it immediately, no separate Save step needed.
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) { toast.error('Photo must be under 2MB'); return; }
-    setPhotoFile(file);
     setPhotoPreview(URL.createObjectURL(file));
+    setUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append('passport_photo', file);
+      const res = await updateMyProfile(formData);
+      setProfile(res.data.teacher);
+      toast.success('Profile photo updated');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Photo upload failed');
+    } finally {
+      setUploadingPhoto(false);
+      setPhotoPreview(null);
+      if (photoRef.current) photoRef.current.value = '';
+    }
   };
 
   const handleSave = async () => {
@@ -257,13 +272,10 @@ const Profile = () => {
           formData.append(key, String(value));
         }
       });
-      if (photoFile) formData.append('passport_photo', photoFile);
       const res = await updateMyProfile(formData);
       setProfile(res.data.teacher);
       resetForm(res.data.teacher);
       setEditing(false);
-      setPhotoFile(null);
-      setPhotoPreview(null);
       toast.success('Profile updated successfully');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Update failed');
@@ -274,8 +286,6 @@ const Profile = () => {
 
   const handleCancel = () => {
     setEditing(false);
-    setPhotoFile(null);
-    setPhotoPreview(null);
     if (profile) resetForm(profile);
   };
 
@@ -353,16 +363,16 @@ const Profile = () => {
                     </div>
                   )}
                 </div>
-                {editing && (
-                  <>
-                    <button onClick={() => photoRef.current?.click()}
-                      className="absolute bottom-1 right-1 bg-amber-600 text-white rounded-full p-2 shadow-lg hover:bg-amber-700 transition">
-                      <Camera size={15} />
-                    </button>
-                    <input ref={photoRef} type="file" accept="image/*"
-                      onChange={handlePhotoChange} className="hidden" />
-                  </>
-                )}
+                <button
+                  onClick={() => photoRef.current?.click()}
+                  disabled={uploadingPhoto}
+                  title="Change profile photo"
+                  className="absolute bottom-1 right-1 bg-amber-600 text-white rounded-full p-2 shadow-lg hover:bg-amber-700 transition disabled:opacity-50"
+                >
+                  <Camera size={15} />
+                </button>
+                <input ref={photoRef} type="file" accept="image/*"
+                  onChange={handlePhotoChange} className="hidden" disabled={uploadingPhoto} />
               </div>
               <div className="pb-2 flex-1 min-w-0 text-center sm:text-left mt-2 sm:mt-0">
                 <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-800 truncate">
@@ -386,7 +396,7 @@ const Profile = () => {
             </div>
             {editing && (
               <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 text-xs text-amber-700">
-                You can directly update your phone number, marital status, and photo. All other details
+                You can directly update your phone number and marital status. All other details
                 require a change request approved by HR — use "Request change" next to each field below.
               </div>
             )}
