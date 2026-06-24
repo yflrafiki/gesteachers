@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getMyProfile, updateMyProfile } from '../api/teachers';
-import { getMyChangeRequests, createChangeRequest } from '../api/changeRequests';
+import { getMyChangeRequests, getChangeRequestDocument } from '../api/changeRequests';
 import Layout from '../components/layout/Layout';
 import Spinner from '../components/common/Spinner';
 import toast from 'react-hot-toast';
@@ -101,9 +102,11 @@ const EditField = ({
   );
 };
 
-// ---- Field that requires HR approval to change ----
+// ---- Field that requires HR approval to change — sends teacher to a
+// dedicated page where they enter the new value and attach a supporting
+// affidavit document, rather than expanding inline. ----
 const RequestChangeField = ({
-  label, value, field, type = 'text', options, pending, onRequest, fullWidth = false
+  label, value, field, type = 'text', options, pending, fullWidth = false
 }: {
   label: string;
   value: any;
@@ -111,13 +114,9 @@ const RequestChangeField = ({
   type?: string;
   options?: string[];
   pending?: { requested_value: string };
-  onRequest: (field: string, requestedValue: string, reason: string) => Promise<void>;
   fullWidth?: boolean;
 }) => {
-  const [open, setOpen] = useState(false);
-  const [newValue, setNewValue] = useState('');
-  const [reason, setReason] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const navigate = useNavigate();
 
   const displayValue = () => {
     if (value === null || value === undefined || value === '') return '—';
@@ -126,27 +125,15 @@ const RequestChangeField = ({
     return String(value);
   };
 
-  const submit = async () => {
-    if (!newValue) { toast.error('Enter the new value'); return; }
-    setSubmitting(true);
-    try {
-      await onRequest(field, newValue, reason);
-      setOpen(false);
-      setNewValue('');
-      setReason('');
-    } catch {
-      // error toast already shown by caller
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   return (
     <div className={fullWidth ? 'sm:col-span-2' : ''}>
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs text-gray-400 mb-0.5">{label}</p>
-        {!pending && !open && (
-          <button onClick={() => setOpen(true)} className="text-xs text-blue-600 hover:underline whitespace-nowrap">
+        {!pending && (
+          <button
+            onClick={() => navigate('/profile/request-change', { state: { field, label, value, type, options } })}
+            className="text-xs text-blue-600 hover:underline whitespace-nowrap"
+          >
             Request change
           </button>
         )}
@@ -156,39 +143,6 @@ const RequestChangeField = ({
         <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
           <Clock size={12} /> Pending HR approval: "{pending.requested_value}"
         </p>
-      )}
-      {open && (
-        <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-2">
-          {type === 'select' && options ? (
-            <select value={newValue} onChange={(e) => setNewValue(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-              <option value="">Select...</option>
-              {options.map(o => <option key={o} value={o}>{o.replace(/_/g, ' ')}</option>)}
-            </select>
-          ) : type === 'checkbox' ? (
-            <select value={newValue} onChange={(e) => setNewValue(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-              <option value="">Select...</option>
-              <option value="true">Yes</option>
-              <option value="false">No</option>
-            </select>
-          ) : (
-            <input type={type} value={newValue} onChange={(e) => setNewValue(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="New value" />
-          )}
-          <input type="text" value={reason} onChange={(e) => setReason(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Reason (optional)" />
-          <div className="flex gap-2">
-            <button onClick={() => setOpen(false)}
-              className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-1.5 rounded-lg text-xs">
-              Cancel
-            </button>
-            <button onClick={submit} disabled={submitting}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded-lg text-xs disabled:opacity-50">
-              {submitting ? 'Submitting...' : 'Submit Request'}
-            </button>
-          </div>
-        </div>
       )}
     </div>
   );
@@ -289,14 +243,13 @@ const Profile = () => {
     if (profile) resetForm(profile);
   };
 
-  const handleRequestChange = async (field: string, requestedValue: string, reason: string) => {
+  const handleViewDocument = async (requestId: string) => {
     try {
-      await createChangeRequest({ field_name: field, requested_value: requestedValue, reason });
-      toast.success('Change request submitted for HR approval');
-      await loadChangeRequests();
+      const res = await getChangeRequestDocument(requestId);
+      const url = URL.createObjectURL(res.data);
+      window.open(url, '_blank');
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to submit change request');
-      throw err;
+      toast.error('Failed to load document');
     }
   };
 
@@ -405,17 +358,21 @@ const Profile = () => {
 
         {/* Personal Information */}
         <Section title="Personal Information">
+          <RequestChangeField label="First Name" field="first_name" value={profile?.first_name}
+            pending={pendingByField['first_name']} />
+          <RequestChangeField label="Last Name" field="last_name" value={profile?.last_name}
+            pending={pendingByField['last_name']} />
           <RequestChangeField label="Title" field="title" value={profile?.title}
-            type="select" options={TITLES} pending={pendingByField['title']} onRequest={handleRequestChange} />
+            type="select" options={TITLES} pending={pendingByField['title']} />
           <RequestChangeField label="Date of Birth" field="date_of_birth" value={profile?.date_of_birth}
-            type="date" pending={pendingByField['date_of_birth']} onRequest={handleRequestChange} />
+            type="date" pending={pendingByField['date_of_birth']} />
           {editing ? (
             <EditField label="Phone Number" field="phone" value={form.phone} onChange={update} type="tel" />
           ) : (
             <InfoField label="Phone Number" value={profile?.phone} />
           )}
           <RequestChangeField label="Gender" field="gender" value={profile?.gender}
-            type="select" options={['Male', 'Female']} pending={pendingByField['gender']} onRequest={handleRequestChange} />
+            type="select" options={['Male', 'Female']} pending={pendingByField['gender']} />
           {editing ? (
             <EditField label="Marital Status" field="marital_status" value={form.marital_status}
               onChange={update} type="select" options={MARITAL_STATUSES} />
@@ -423,29 +380,29 @@ const Profile = () => {
             <InfoField label="Marital Status" value={profile?.marital_status} />
           )}
           <RequestChangeField label="Nationality" field="nationality" value={profile?.nationality}
-            pending={pendingByField['nationality']} onRequest={handleRequestChange} />
+            pending={pendingByField['nationality']} />
           <RequestChangeField label="Hometown (Where you're from)" field="hometown" value={profile?.hometown}
-            pending={pendingByField['hometown']} onRequest={handleRequestChange} />
+            pending={pendingByField['hometown']} />
           <RequestChangeField label="House Number" field="house_number" value={profile?.house_number}
-            pending={pendingByField['house_number']} onRequest={handleRequestChange} />
+            pending={pendingByField['house_number']} />
         </Section>
 
         {/* Identification */}
         <Section title="Identification" defaultOpen={false}>
           <RequestChangeField label="Ghana Card Number" field="ghana_card_number" value={profile?.ghana_card_number}
-            pending={pendingByField['ghana_card_number']} onRequest={handleRequestChange} />
+            pending={pendingByField['ghana_card_number']} />
           <RequestChangeField label="Ghana Card Issue Date" field="ghana_card_issue_date" type="date"
-            value={profile?.ghana_card_issue_date} pending={pendingByField['ghana_card_issue_date']} onRequest={handleRequestChange} />
+            value={profile?.ghana_card_issue_date} pending={pendingByField['ghana_card_issue_date']} />
           <RequestChangeField label="Ghana Card Expiry Date" field="ghana_card_expiry_date" type="date"
-            value={profile?.ghana_card_expiry_date} pending={pendingByField['ghana_card_expiry_date']} onRequest={handleRequestChange} />
+            value={profile?.ghana_card_expiry_date} pending={pendingByField['ghana_card_expiry_date']} />
         </Section>
 
         {/* Professional Information */}
         <Section title="Professional Information">
           <RequestChangeField label="Subject Specialization" field="subject_specialization"
-            value={profile?.subject_specialization} pending={pendingByField['subject_specialization']} onRequest={handleRequestChange} />
+            value={profile?.subject_specialization} pending={pendingByField['subject_specialization']} />
           <RequestChangeField label="Qualification" field="qualification" value={profile?.qualification}
-            type="select" options={QUALIFICATIONS} pending={pendingByField['qualification']} onRequest={handleRequestChange} />
+            type="select" options={QUALIFICATIONS} pending={pendingByField['qualification']} />
           <InfoField label="Current Grade / Rank (HR managed)" value={profile?.current_grade} />
           <InfoField label="Years of Service (HR managed)" value={profile?.years_of_service} />
           <InfoField label="National Date of Present Rank (HR managed)" value={profile?.national_date_of_present_rank} />
@@ -467,10 +424,10 @@ const Profile = () => {
         <Section title="Diversity & Health" defaultOpen={false}>
           <RequestChangeField label="Do you have a disability?" field="disability_status"
             value={profile?.disability_status} type="checkbox" fullWidth
-            pending={pendingByField['disability_status']} onRequest={handleRequestChange} />
+            pending={pendingByField['disability_status']} />
           <RequestChangeField label="Disability Type / Description" field="disability_type"
             value={profile?.disability_type} fullWidth
-            pending={pendingByField['disability_type']} onRequest={handleRequestChange} />
+            pending={pendingByField['disability_type']} />
         </Section>
 
         {/* Change Request History */}
@@ -483,6 +440,14 @@ const Profile = () => {
                     <p className="text-sm font-medium text-gray-800">{r.field_name.replace(/_/g, ' ')}</p>
                     <p className="text-xs text-gray-500">"{r.current_value || '—'}" → "{r.requested_value}"</p>
                     {r.hr_notes && <p className="text-xs text-gray-400 mt-0.5">HR notes: {r.hr_notes}</p>}
+                    {r.document_name && (
+                      <button
+                        onClick={() => handleViewDocument(r.id)}
+                        className="text-xs text-blue-600 hover:underline mt-0.5"
+                      >
+                        View submitted document ({r.document_name})
+                      </button>
+                    )}
                   </div>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                     r.status === 'pending' ? 'bg-amber-100 text-amber-700' :
