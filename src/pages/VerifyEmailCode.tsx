@@ -25,7 +25,7 @@ const VerifyEmailCode = () => {
       const res = await verifyEmailCode({ email, code });
       const { token, user } = res.data;
       setSession(token, user);
-      toast.success('Email verified!');
+      toast.success(`Welcome, ${user.name || user.email}!`);
       navigate('/dashboard');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Verification failed');

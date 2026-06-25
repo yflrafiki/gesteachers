@@ -16,8 +16,8 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await login(form.email, form.password);
-      toast.success('Login successful!');
+      const user = await login(form.email, form.password);
+      toast.success(`Welcome, ${user.name || user.email}!`);
       navigate('/dashboard');
     } catch (err: any) {
       if (err.response?.data?.email_verification_required) {
