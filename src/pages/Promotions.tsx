@@ -1,26 +1,33 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { checkEligibility, getPromotionFormData, applyPromotion, getMyPromotions, submitPromotionDocument } from '../api/promotions';
-import { getMyDocuments } from '../api/documents';
+import { uploadDocument, getDocumentById } from '../api/documents';
 import Layout from '../components/layout/Layout';
 import Spinner from '../components/common/Spinner';
 import Badge from '../components/common/Badge';
 import { type Application } from '../types/index';
 import toast from 'react-hot-toast';
-import { TrendingUp, CheckCircle, XCircle, X, FileText, Upload } from 'lucide-react';
+import { TrendingUp, CheckCircle, XCircle, X, Upload } from 'lucide-react';
+
+const DOCUMENT_TYPES = [
+  { value: 'qualification', label: 'Qualification (degree / diploma)' },
+  { value: 'license', label: 'Teaching License / NTC Certificate' },
+  { value: 'other', label: 'Other supporting document' },
+];
 
 const Promotions = () => {
   const [promotions, setPromotions] = useState<Application[]>([]);
   const [eligibility, setEligibility] = useState<any>(null);
   const [eligibilityLoaded, setEligibilityLoaded] = useState(false);
-  const [documents, setDocuments] = useState<any[]>([]);
   const [formData, setFormData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [showDocForm, setShowDocForm] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [submittingDoc, setSubmittingDoc] = useState(false);
   const [reason, setReason] = useState('');
-  const [selectedDocId, setSelectedDocId] = useState('');
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [documentType, setDocumentType] = useState('qualification');
+  const [docResultMsg, setDocResultMsg] = useState<{ kind: 'retry' | 'review'; text: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const latestApplication = promotions[0] ?? null;
   const applicationStatus = latestApplication?.status;
@@ -28,10 +35,9 @@ const Promotions = () => {
 
   const fetchData = async () => {
     try {
-      const [eligibilityResult, promotionsResult, documentsResult] = await Promise.allSettled([
+      const [eligibilityResult, promotionsResult] = await Promise.allSettled([
         checkEligibility(),
         getMyPromotions(),
-        getMyDocuments(),
       ]);
 
       if (eligibilityResult.status === 'fulfilled') {
@@ -47,13 +53,6 @@ const Promotions = () => {
       } else {
         console.error('Promotions load failed:', promotionsResult.reason);
         toast.error(promotionsResult.reason?.response?.data?.message || 'Failed to load promotion history');
-      }
-
-      if (documentsResult.status === 'fulfilled') {
-        setDocuments(documentsResult.value.data.documents.filter((d: any) => d.ocr_status === 'completed'));
-      } else {
-        console.error('Documents load failed:', documentsResult.reason);
-        toast.error(documentsResult.reason?.response?.data?.message || 'Failed to load documents');
       }
 
       try {
@@ -90,24 +89,61 @@ const Promotions = () => {
     }
   };
 
-  const handleSubmitDocument = async () => {
-    if (!selectedDocId || !showDocForm) return;
-    setSubmittingDoc(true);
+  const closeDocForm = () => {
+    setShowDocForm(null);
+    setDocResultMsg(null);
+    setDocumentType('qualification');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // Upload, wait for OCR + blockchain checks to finish, then submit the
+  // result to the promotion application — all in one step, no separate
+  // "Documents" page needed.
+  const handleUploadAndSubmit = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const applicationId = showDocForm;
+    if (!file || !applicationId) return;
+
+    setUploadingDoc(true);
+    setDocResultMsg(null);
     try {
-      const res = await submitPromotionDocument(showDocForm, selectedDocId);
-      const result = res.data.ocr_result;
-      if (result.nameMatch || result.staffIdMatch) {
-        toast.success('Document submitted and validated successfully!');
-      } else {
-        toast('Document submitted but needs manual HR review', { icon: '⚠️' });
+      const formData = new FormData();
+      formData.append('document', file);
+      formData.append('document_type', documentType);
+      const uploadRes = await uploadDocument(formData);
+      const documentId = uploadRes.data.document.id;
+
+      let doc = uploadRes.data.document;
+      for (let i = 0; i < 12 && doc.ocr_status === 'pending'; i++) {
+        await new Promise((r) => setTimeout(r, 1500));
+        const res = await getDocumentById(documentId);
+        doc = res.data.document ?? res.data;
       }
-      setShowDocForm(null);
-      setSelectedDocId('');
-      fetchData();
+
+      if (doc.ocr_status !== 'completed') {
+        toast.error('Could not process this document. Try uploading a clearer photo or scan.');
+        return;
+      }
+
+      const submitRes = await submitPromotionDocument(applicationId, documentId);
+      const result = submitRes.data.ocr_result;
+
+      if (result.auto_decision === 'approved') {
+        toast.success(submitRes.data.message);
+        closeDocForm();
+        fetchData();
+      } else if (result.can_retry) {
+        setDocResultMsg({ kind: 'retry', text: submitRes.data.message });
+      } else {
+        toast(submitRes.data.message, { icon: '🕓' });
+        closeDocForm();
+        fetchData();
+      }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Submission failed');
+      toast.error(err.response?.data?.message || 'Upload failed');
     } finally {
-      setSubmittingDoc(false);
+      setUploadingDoc(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -288,90 +324,68 @@ const Promotions = () => {
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
               <div className="flex justify-between items-center mb-5">
                 <h3 className="text-lg font-bold text-gray-800">Submit Supporting Document</h3>
-                <button onClick={() => setShowDocForm(null)}>
+                <button onClick={closeDocForm}>
                   <X size={20} className="text-gray-500" />
                 </button>
               </div>
 
               <div className="bg-amber-50 rounded-lg p-3 mb-4 text-sm text-amber-700">
                 <p className="font-medium mb-1">How this works:</p>
-                <p>OCR will check if your name and staff ID in the document match your profile.
-                  Documents that pass are automatically approved. Others go to HR for manual review.</p>
+                <p>We automatically anchor your document on the blockchain, run OCR to check your
+                  name/staff ID, and — for qualifications/licenses — cross-check it against GTEC/NTC's
+                  records. If it checks out, you get exam access immediately.</p>
               </div>
 
-              {documents.length === 0 ? (
-                <div className="text-center py-6">
-                  <FileText size={32} className="text-gray-300 mx-auto mb-2" />
-                  <p className="text-gray-500 text-sm">No completed OCR documents found.</p>
-                  <p className="text-gray-400 text-xs mt-1">
-                    Upload and wait for OCR to complete in the Documents section first.
-                  </p>
+              {docResultMsg ? (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 text-sm text-red-700">
+                  <p className="font-medium mb-1">This document couldn't be verified</p>
+                  <p>{docResultMsg.text}</p>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Select Document
-                    </label>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {documents.map((doc: any) => {
-                        let validation = null;
-                        try { validation = JSON.parse(doc.ocr_validation); } catch {}
-                        const isValid = validation?.nameMatch || validation?.staffIdMatch;
-                        return (
-                          <label
-                            key={doc.id}
-                            className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition ${
-                              selectedDocId === doc.id
-                                ? 'border-amber-500 bg-amber-50'
-                                : 'border-gray-200 hover:border-gray-300'
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name="document"
-                              value={doc.id}
-                              checked={selectedDocId === doc.id}
-                              onChange={() => setSelectedDocId(doc.id)}
-                              className="accent-blue-600"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-800 truncate">
-                                {doc.file_name}
-                              </p>
-                              <p className="text-xs text-gray-400">
-                                {new Date(doc.uploaded_at).toLocaleDateString()}
-                              </p>
-                            </div>
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                              isValid
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-yellow-100 text-yellow-700'
-                            }`}>
-                              {isValid ? 'Validated' : 'Needs Review'}
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      onClick={() => setShowDocForm(null)}
-                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-lg text-sm"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleSubmitDocument}
-                      disabled={!selectedDocId || submittingDoc}
-                      className="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2.5 rounded-lg text-sm disabled:opacity-50"
-                    >
-                      {submittingDoc ? 'Submitting...' : 'Submit Document'}
-                    </button>
-                  </div>
+              ) : null}
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Document Type
+                  </label>
+                  <select
+                    value={documentType}
+                    onChange={(e) => setDocumentType(e.target.value)}
+                    disabled={uploadingDoc}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    {DOCUMENT_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
                 </div>
-              )}
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={closeDocForm}
+                    disabled={uploadingDoc}
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-lg text-sm disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <label className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm cursor-pointer transition ${
+                    uploadingDoc
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-amber-600 hover:bg-amber-700 text-white'
+                  }`}>
+                    <Upload size={14} />
+                    {uploadingDoc ? 'Verifying...' : docResultMsg ? 'Upload Correct Document' : 'Upload Document'}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      disabled={uploadingDoc}
+                      onChange={handleUploadAndSubmit}
+                    />
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
         )}

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, User, ArrowLeftRight,
-  TrendingUp, FileText, Menu, X,
+  TrendingUp, Menu, X,
   BookOpen
 } from 'lucide-react';
 
@@ -11,7 +11,6 @@ const links = [
   { to: '/profile', icon: User, label: 'My Profile' },
   { to: '/transfers', icon: ArrowLeftRight, label: 'Transfer' },
   { to: '/promotions', icon: TrendingUp, label: 'Promotion' },
-  { to: '/documents', icon: FileText, label: 'Documents' },
   { to: '/exams', icon: BookOpen, label: 'Examinations' },
 ];
 

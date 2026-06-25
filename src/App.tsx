@@ -7,7 +7,6 @@ import Profile from './pages/Profile';
 import Account from './pages/Account';
 import Transfers from './pages/Transfers';
 import Promotions from './pages/Promotions';
-import Documents from './pages/Documents';
 import Spinner from './components/common/Spinner';
 import Exams from './pages/Exams';
 import RequestChange from './pages/RequestChange';
@@ -33,7 +32,6 @@ function App() {
         <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
         <Route path="/transfers" element={<ProtectedRoute><Transfers /></ProtectedRoute>} />
         <Route path="/promotions" element={<ProtectedRoute><Promotions /></ProtectedRoute>} />
-        <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
         <Route path="/exams" element={<ProtectedRoute><Exams /></ProtectedRoute>} />
         <Route path="/profile/request-change" element={<ProtectedRoute><RequestChange /></ProtectedRoute>} />
         <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Navigate to="/login" />} />
