@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
-import { API_URL } from '../../api/axios';
 import { getNotifications, getUnreadCount, markNotificationRead, markAllNotificationsRead } from '../../api/notifications';
+import { useNotificationStream } from '../../hooks/useNotificationStream';
 
 interface Notification {
   id: string;
@@ -41,25 +41,10 @@ const NotificationBell = () => {
 
   // Live push: an open connection that the server writes to the instant a
   // new notification is created for this user — no polling delay.
-  useEffect(() => {
-    const token = sessionStorage.getItem('token');
-    if (!token) return;
-
-    const source = new EventSource(`${API_URL}/api/notifications/stream?token=${token}`);
-
-    source.onmessage = (e) => {
-      const notification: Notification = JSON.parse(e.data);
-      setUnreadCount((prev) => prev + 1);
-      setNotifications((prev) => [notification, ...prev]);
-    };
-
-    source.onerror = () => {
-      // EventSource auto-reconnects using the server's `retry:` hint —
-      // nothing to do here beyond letting the browser retry.
-    };
-
-    return () => source.close();
-  }, []);
+  useNotificationStream((notification) => {
+    setUnreadCount((prev) => prev + 1);
+    setNotifications((prev) => [notification, ...prev]);
+  });
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
