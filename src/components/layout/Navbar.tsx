@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { User } from 'lucide-react';
 import gesLogo from '../../assets/ges-logo.png';
+import NotificationBell from './NotificationBell';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -21,16 +22,19 @@ const Navbar = () => {
         </div>
       </div>
 
-      <button
-        onClick={() => navigate('/account')}
-        title="My Account"
-        className="flex items-center justify-center w-9 h-9 rounded-full transition"
-        style={{ backgroundColor: '#C49A1A' }}
-        onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#9C7A0A')}
-        onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#C49A1A')}
-      >
-        <User size={18} />
-      </button>
+      <div className="flex items-center gap-2">
+        <NotificationBell />
+        <button
+          onClick={() => navigate('/account')}
+          title="My Account"
+          className="flex items-center justify-center w-9 h-9 rounded-full transition"
+          style={{ backgroundColor: '#C49A1A' }}
+          onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#9C7A0A')}
+          onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#C49A1A')}
+        >
+          <User size={18} />
+        </button>
+      </div>
     </nav>
   );
 };
