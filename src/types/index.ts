@@ -44,7 +44,7 @@ export interface Application {
   teacher_id: string;
   type: string;
   status: string;
-  reason: string;
+  reason: string | null;
   requested_district?: string;
   requested_region?: string;
   hr_notes: string | null;
@@ -52,6 +52,16 @@ export interface Application {
   reviewed_at: string | null;
   created_at: string;
   updated_at: string;
+  // Present for promotion applications — the linked promotion_documents/
+  // documents row, if a document has been submitted for it yet.
+  promotion_document_id?: string | null;
+  hr_decision?: string | null;
+  document_hr_notes?: string | null;
+  submission_attempts?: number;
+  exam_access_granted?: boolean;
+  hr_reviewed?: boolean;
+  document_file_name?: string | null;
+  document_ocr_status?: string | null;
 }
 
 export interface Document {

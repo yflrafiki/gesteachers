@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getMyCredentials } from '../api/credentials';
 import Layout from '../components/layout/Layout';
-import Spinner from '../components/common/Spinner';
+import { CardListSkeleton } from '../components/common/Skeleton';
 import Badge from '../components/common/Badge';
 import { type Credential } from '../types/index';
 import toast from 'react-hot-toast';
@@ -30,7 +30,7 @@ const Credentials = () => {
     toast.success('Copied to clipboard');
   };
 
-  if (loading) return <Layout><Spinner /></Layout>;
+  if (loading) return <Layout><CardListSkeleton /></Layout>;
 
   return (
     <Layout>

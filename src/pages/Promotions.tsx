@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { checkEligibility, getPromotionFormData, applyPromotion, getMyPromotions, submitPromotionDocument } from '../api/promotions';
 import { uploadDocument, getDocumentById } from '../api/documents';
 import Layout from '../components/layout/Layout';
-import Spinner from '../components/common/Spinner';
+import { CardListSkeleton } from '../components/common/Skeleton';
 import Badge from '../components/common/Badge';
 import { type Application } from '../types/index';
 import toast from 'react-hot-toast';
@@ -21,17 +21,32 @@ const Promotions = () => {
   const [formData, setFormData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [showDocForm, setShowDocForm] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [reason, setReason] = useState('');
-  const [uploadingDoc, setUploadingDoc] = useState(false);
   const [documentType, setDocumentType] = useState('qualification');
   const [docResultMsg, setDocResultMsg] = useState<{ kind: 'retry' | 'review'; text: string } | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const latestApplication = promotions[0] ?? null;
+  // The application form's own required document — a supporting document is
+  // now attached at the point of applying, not as a separate later step.
+  const [applyDocument, setApplyDocument] = useState<File | null>(null);
+  // Picking a file doesn't immediately trigger OCR/blockchain verification —
+  // the teacher reviews what they picked and explicitly confirms first, so a
+  // wrong file can be swapped out before it's actually checked.
+  const [documentConfirmed, setDocumentConfirmed] = useState(false);
+  const [pendingApplicationId, setPendingApplicationId] = useState<string | null>(null);
+  const applyFileInputRef = useRef<HTMLInputElement>(null);
+
+  const latestApplication: any = promotions[0] ?? null;
   const applicationStatus = latestApplication?.status;
   const hasActiveApplication = ['pending', 'more_info', 'approved'].includes(applicationStatus);
+
+  // True if the latest application still needs a document submitted (or
+  // resubmitted after a failed check) — derived from server data, not local
+  // state, so a page refresh mid-upload doesn't strand the teacher with no
+  // way to continue. They'd otherwise be stuck: the application already
+  // exists so "Apply" is hidden, but nothing would let them attach a document.
+  const needsDocument = hasActiveApplication
+    && applicationStatus !== 'approved'
+    && (!latestApplication?.promotion_document_id || latestApplication?.hr_decision === 'retry');
 
   const fetchData = async () => {
     try {
@@ -57,7 +72,7 @@ const Promotions = () => {
 
       try {
         const form = await getPromotionFormData();
-        setFormData(form.data.form_fields || form.data.formData || null);
+        setFormData(form.data.teacher || null);
       } catch (formErr: any) {
         console.error('Failed to load promotion form data:', formErr, formErr?.response?.data);
         const serverMsg = formErr?.response?.data?.message || formErr?.response?.data?.error || formErr?.message || 'Promotion form data could not be loaded';
@@ -73,42 +88,57 @@ const Promotions = () => {
 
   useEffect(() => { fetchData(); }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      await applyPromotion({ reason });
-      toast.success('Promotion application submitted successfully');
-      setShowForm(false);
-      setReason('');
-      fetchData();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Submission failed');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const closeDocForm = () => {
-    setShowDocForm(null);
+  const closeApplyForm = () => {
+    setShowForm(false);
+    setApplyDocument(null);
+    setDocumentConfirmed(false);
+    setPendingApplicationId(null);
     setDocResultMsg(null);
     setDocumentType('qualification');
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (applyFileInputRef.current) applyFileInputRef.current.value = '';
   };
 
-  // Upload, wait for OCR + blockchain checks to finish, then submit the
-  // result to the promotion application — all in one step, no separate
-  // "Documents" page needed.
-  const handleUploadAndSubmit = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    const applicationId = showDocForm;
-    if (!file || !applicationId) return;
+  // Lets the teacher swap out the file they picked before it's actually
+  // verified — goes back to the picker step without losing the in-progress
+  // application or document type selection.
+  const changeApplyDocument = () => {
+    setApplyDocument(null);
+    setDocumentConfirmed(false);
+    if (applyFileInputRef.current) applyFileInputRef.current.value = '';
+  };
 
-    setUploadingDoc(true);
+  // Opens the application modal. When continuing an existing application
+  // (after a refresh, or a previous attempt that needs a retry), pass its
+  // ID so the upload step attaches to that application instead of creating
+  // a new one — applying again would otherwise be rejected as a duplicate.
+  const openApplyForm = (continueApplicationId?: string) => {
+    setPendingApplicationId(continueApplicationId || null);
+    setShowForm(true);
+  };
+
+  // Creates the application (only once — a retry after a failed check reuses
+  // the same application instead of creating a duplicate), then immediately
+  // uploads the attached document and runs it through the same OCR +
+  // blockchain check used everywhere else.
+  const handleApplySubmit = async () => {
+    if (!applyDocument) {
+      toast.error('Please attach a supporting document');
+      return;
+    }
+
+    setSubmitting(true);
     setDocResultMsg(null);
     try {
+      let applicationId = pendingApplicationId;
+      if (!applicationId) {
+        const appRes = await applyPromotion({});
+        applicationId = appRes.data.application.id;
+        setPendingApplicationId(applicationId);
+      }
+      if (!applicationId) return;
+
       const formData = new FormData();
-      formData.append('document', file);
+      formData.append('document', applyDocument);
       formData.append('document_type', documentType);
       const uploadRes = await uploadDocument(formData);
       const documentId = uploadRes.data.document.id;
@@ -130,24 +160,26 @@ const Promotions = () => {
 
       if (result.auto_decision === 'approved') {
         toast.success(submitRes.data.message);
-        closeDocForm();
+        closeApplyForm();
         fetchData();
       } else if (result.can_retry) {
         setDocResultMsg({ kind: 'retry', text: submitRes.data.message });
+        setApplyDocument(null);
+        setDocumentConfirmed(false);
+        if (applyFileInputRef.current) applyFileInputRef.current.value = '';
       } else {
         toast(submitRes.data.message, { icon: '🕓' });
-        closeDocForm();
+        closeApplyForm();
         fetchData();
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Upload failed');
+      toast.error(err.response?.data?.message || 'Submission failed');
     } finally {
-      setUploadingDoc(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      setSubmitting(false);
     }
   };
 
-  if (loading) return <Layout><Spinner /></Layout>;
+  if (loading) return <Layout><CardListSkeleton /></Layout>;
 
   return (
     <Layout>
@@ -222,10 +254,18 @@ const Promotions = () => {
               </div>
               {!hasActiveApplication && eligibility?.eligible && (
                 <button
-                  onClick={() => setShowForm(true)}
+                  onClick={() => openApplyForm()}
                   className="mt-4 bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg text-sm transition"
                 >
                   Apply for Promotion
+                </button>
+              )}
+              {needsDocument && (
+                <button
+                  onClick={() => openApplyForm(latestApplication.id)}
+                  className="mt-4 bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-lg text-sm transition"
+                >
+                  {latestApplication?.hr_decision === 'retry' ? 'Upload Correct Document' : 'Continue — Submit Document'}
                 </button>
               )}
             </div>
@@ -238,7 +278,7 @@ const Promotions = () => {
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
               <div className="flex justify-between items-center mb-5">
                 <h3 className="text-lg font-bold text-gray-800">Apply for Promotion</h3>
-                <button onClick={() => setShowForm(false)}>
+                <button onClick={closeApplyForm}>
                   <X size={20} className="text-gray-500" />
                 </button>
               </div>
@@ -283,76 +323,30 @@ const Promotions = () => {
                 })()}
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Reason for Promotion
-                  </label>
-                  <textarea
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
-                    rows={4}
-                    placeholder="Explain why you deserve this promotion..."
-                    required
-                  />
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowForm(false)}
-                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-lg text-sm"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="flex-1 bg-blue-700 hover:bg-blue-800 text-white py-2.5 rounded-lg text-sm disabled:opacity-50"
-                  >
-                    {submitting ? 'Submitting...' : 'Submit Application'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Document Submission Modal */}
-        {showDocForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
-              <div className="flex justify-between items-center mb-5">
-                <h3 className="text-lg font-bold text-gray-800">Submit Supporting Document</h3>
-                <button onClick={closeDocForm}>
-                  <X size={20} className="text-gray-500" />
-                </button>
-              </div>
-
               <div className="bg-amber-50 rounded-lg p-3 mb-4 text-sm text-amber-700">
                 <p className="font-medium mb-1">How this works:</p>
-                <p>We automatically anchor your document on the blockchain, run OCR to check your
-                  name/staff ID, and — for qualifications/licenses — cross-check it against GTEC/NTC's
-                  records. If it checks out, you get exam access immediately.</p>
+                <p>Your document is automatically anchored on the blockchain, checked by OCR
+                  against your profile, and — for qualifications/licenses — cross-checked against
+                  GTEC/NTC's records. If it checks out, your application goes through immediately.</p>
               </div>
 
-              {docResultMsg ? (
+              {docResultMsg && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 text-sm text-red-700">
                   <p className="font-medium mb-1">This document couldn't be verified</p>
                   <p>{docResultMsg.text}</p>
                 </div>
-              ) : null}
+              )}
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Document Type
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Document Type <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={documentType}
                     onChange={(e) => setDocumentType(e.target.value)}
-                    disabled={uploadingDoc}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    disabled={submitting || documentConfirmed}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-50"
                   >
                     {DOCUMENT_TYPES.map((t) => (
                       <option key={t.value} value={t.value}>{t.label}</option>
@@ -360,30 +354,73 @@ const Promotions = () => {
                   </select>
                 </div>
 
+                {!documentConfirmed ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Supporting Document <span className="text-red-500">*</span>
+                    </label>
+                    <label className="flex items-center gap-2 border border-dashed border-gray-300 rounded-lg px-3 py-2.5 text-sm cursor-pointer hover:border-amber-400 transition">
+                      <Upload size={14} className="text-gray-400 shrink-0" />
+                      <span className="truncate text-gray-600">
+                        {applyDocument ? applyDocument.name : (docResultMsg ? 'Upload the correct document...' : 'Choose a file...')}
+                      </span>
+                      <input
+                        ref={applyFileInputRef}
+                        type="file"
+                        className="hidden"
+                        disabled={submitting}
+                        onChange={(e) => setApplyDocument(e.target.files?.[0] || null)}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  // A picked file isn't checked immediately — the teacher
+                  // confirms it's the right one first, since once "Submit"
+                  // is pressed the OCR/blockchain check runs right away.
+                  <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <CheckCircle size={16} className="text-blue-600 shrink-0" />
+                      <span className="text-sm text-blue-800 truncate">{applyDocument?.name}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={changeApplyDocument}
+                      disabled={submitting}
+                      className="text-xs font-medium text-blue-700 hover:underline shrink-0 disabled:opacity-50"
+                    >
+                      Change File
+                    </button>
+                  </div>
+                )}
+
                 <div className="flex gap-3 pt-2">
                   <button
                     type="button"
-                    onClick={closeDocForm}
-                    disabled={uploadingDoc}
+                    onClick={closeApplyForm}
+                    disabled={submitting}
                     className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-lg text-sm disabled:opacity-50"
                   >
                     Cancel
                   </button>
-                  <label className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm cursor-pointer transition ${
-                    uploadingDoc
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-amber-600 hover:bg-amber-700 text-white'
-                  }`}>
-                    <Upload size={14} />
-                    {uploadingDoc ? 'Verifying...' : docResultMsg ? 'Upload Correct Document' : 'Upload Document'}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      className="hidden"
-                      disabled={uploadingDoc}
-                      onChange={handleUploadAndSubmit}
-                    />
-                  </label>
+                  {!documentConfirmed ? (
+                    <button
+                      type="button"
+                      onClick={() => setDocumentConfirmed(true)}
+                      disabled={!applyDocument}
+                      className="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2.5 rounded-lg text-sm disabled:opacity-50"
+                    >
+                      Review Document
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleApplySubmit}
+                      disabled={submitting}
+                      className="flex-1 bg-blue-700 hover:bg-blue-800 text-white py-2.5 rounded-lg text-sm disabled:opacity-50"
+                    >
+                      {submitting ? 'Submitting...' : 'Confirm & Submit'}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -408,23 +445,41 @@ const Promotions = () => {
                       <span className="font-semibold text-gray-800">Promotion Application</span>
                       <Badge status={app.status} />
                     </div>
-                    <p className="text-sm text-gray-500">{app.reason}</p>
+                    {app.reason && <p className="text-sm text-gray-500">{app.reason}</p>}
                     <p className="text-xs text-gray-400">
-                      Submitted: {new Date(app.created_at).toLocaleDateString()}
+                      Submitted: {new Date(app.created_at).toLocaleString()}
                     </p>
+                    {app.reviewed_at && (
+                      <p className="text-xs text-gray-400">
+                        {app.status === 'approved' ? 'Approved' : app.status === 'rejected' ? 'Rejected' : 'Reviewed'}: {new Date(app.reviewed_at).toLocaleString()}
+                      </p>
+                    )}
+
+                    {/* What was actually submitted, and its verification status —
+                        pulled from the server so it survives a page refresh. */}
+                    {app.document_file_name ? (
+                      <div className="flex items-center gap-2 text-xs mt-1">
+                        <Upload size={12} className="text-gray-400" />
+                        <span className="text-gray-600">{app.document_file_name}</span>
+                        <span className={`px-2 py-0.5 rounded-full font-medium ${
+                          app.hr_decision === 'approved' ? 'bg-green-100 text-green-700'
+                          : app.hr_decision === 'retry' ? 'bg-red-100 text-red-700'
+                          : app.hr_decision === 'manual_review' ? 'bg-yellow-100 text-yellow-700'
+                          : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {app.hr_decision === 'approved' ? 'Verified'
+                            : app.hr_decision === 'retry' ? 'Needs re-upload'
+                            : app.hr_decision === 'manual_review' ? 'Under HR review'
+                            : app.document_ocr_status === 'pending' ? 'Still processing...'
+                            : app.hr_decision || 'Submitted'}
+                        </span>
+                      </div>
+                    ) : (app.status === 'pending' || app.status === 'more_info') && (
+                      <p className="text-xs text-amber-600 mt-1">No document submitted yet</p>
+                    )}
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    {/* Submit document button for pending applications */}
-                    {(app.status === 'pending' || app.status === 'more_info') && (
-                      <button
-                        onClick={() => setShowDocForm(app.id)}
-                        className="flex items-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-700 px-4 py-2 rounded-lg text-sm transition"
-                      >
-                        <Upload size={14} />
-                        Submit Document
-                      </button>
-                    )}
                     {app.hr_notes && (
                       <div className="bg-amber-50 border border-amber-100 rounded-lg px-4 py-3 text-sm text-amber-800 max-w-xs">
                         <p className="font-medium mb-1">HR Notes:</p>

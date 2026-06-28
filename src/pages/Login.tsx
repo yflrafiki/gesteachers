@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import gesLogo from '../assets/ges-logo.png';
@@ -80,6 +80,11 @@ const Login = () => {
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
+            </div>
+            <div className="text-right mt-1.5">
+              <Link to="/forgot-password" className="text-xs font-medium hover:underline" style={{ color: '#C49A1A' }}>
+                Forgot password?
+              </Link>
             </div>
           </div>
           <button

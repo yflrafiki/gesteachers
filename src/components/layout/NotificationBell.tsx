@@ -72,24 +72,28 @@ const NotificationBell = () => {
     }
   };
 
+  // Reading one notification clears it from the list immediately — it
+  // shouldn't take "mark all read" to make a notification you already
+  // looked at disappear.
   const handleNotificationClick = async (n: Notification) => {
-    if (!n.read) {
-      try {
-        await markNotificationRead(n.id);
-        setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-      } catch {
-        // Non-critical — worst case it stays unread until next refresh.
-      }
-    }
+    const wasUnread = !n.read;
+    setNotifications((prev) => prev.filter((x) => x.id !== n.id));
+    if (wasUnread) setUnreadCount((prev) => Math.max(0, prev - 1));
     setOpen(false);
     if (n.link) navigate(n.link);
+    if (wasUnread) {
+      try {
+        await markNotificationRead(n.id);
+      } catch {
+        // Non-critical — worst case it shows as unread again next time the list is fetched.
+      }
+    }
   };
 
   const handleMarkAllRead = async () => {
     try {
       await markAllNotificationsRead();
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      setNotifications([]);
       setUnreadCount(0);
     } catch {
       // Non-critical — leave as-is, user can retry.

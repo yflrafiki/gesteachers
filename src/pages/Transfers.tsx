@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createTransfer, getMyTransfers } from '../api/transfers';
 import Layout from '../components/layout/Layout';
-import Spinner from '../components/common/Spinner';
+import { CardListSkeleton } from '../components/common/Skeleton';
 import Badge from '../components/common/Badge';
 import { type Application } from '../types/index';
 import toast from 'react-hot-toast';
@@ -53,7 +53,7 @@ const Transfers = () => {
     }
   };
 
-  if (loading) return <Layout><Spinner /></Layout>;
+  if (loading) return <Layout><CardListSkeleton /></Layout>;
 
   return (
     <Layout>
@@ -175,8 +175,13 @@ const Transfers = () => {
                     </p>
                     <p className="text-sm text-gray-500">{app.reason}</p>
                     <p className="text-xs text-gray-400">
-                      Submitted: {new Date(app.created_at).toLocaleDateString()}
+                      Submitted: {new Date(app.created_at).toLocaleString()}
                     </p>
+                    {app.reviewed_at && (
+                      <p className="text-xs text-gray-400">
+                        {app.status === 'approved' ? 'Approved' : 'Rejected'}: {new Date(app.reviewed_at).toLocaleString()}
+                      </p>
+                    )}
                   </div>
                   {app.hr_notes && (
                     <div className="bg-amber-50 border border-amber-100 rounded-lg px-4 py-3 text-sm text-amber-800 max-w-xs">

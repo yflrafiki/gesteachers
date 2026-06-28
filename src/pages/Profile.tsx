@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getMyProfile, updateMyProfile } from '../api/teachers';
 import { getMyChangeRequests, getChangeRequestDocument } from '../api/changeRequests';
 import Layout from '../components/layout/Layout';
-import Spinner from '../components/common/Spinner';
+import { FormSkeleton } from '../components/common/Skeleton';
 import toast from 'react-hot-toast';
 import {
   User, Edit, Save, X, Camera,
@@ -253,7 +253,7 @@ const Profile = () => {
     }
   };
 
-  if (loading) return <Layout><Spinner /></Layout>;
+  if (loading) return <Layout><FormSkeleton /></Layout>;
 
   const apiBaseUrl = import.meta.env.VITE_API_URL?.replace(/\/+$|\/$/g, '') || 'http://localhost:5000';
   const photoSrc = photoPreview ||

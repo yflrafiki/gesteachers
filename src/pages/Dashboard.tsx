@@ -6,7 +6,7 @@ import { getMyPromotions } from '../api/promotions';
 import { getMyDocuments } from '../api/documents';
 import Layout from '../components/layout/Layout';
 import Badge from '../components/common/Badge';
-import Spinner from '../components/common/Spinner';
+import { DashboardSkeleton } from '../components/common/Skeleton';
 import { type Teacher, type Application, type Document } from '../types/index';
 import {
   User, ArrowLeftRight, TrendingUp,
@@ -62,7 +62,7 @@ const TeacherDashboard = () => {
     fetchAll();
   }, []);
 
-  if (loading) return <Layout><Spinner /></Layout>;
+  if (loading) return <Layout><DashboardSkeleton /></Layout>;
 
   const pendingTransfers = transfers.filter(t => t.status === 'pending').length;
   const pendingPromotions = promotions.filter(p => p.status === 'pending').length;

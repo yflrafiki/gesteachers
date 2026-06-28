@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getAvailableExams, getExamQuestions, submitExam } from '../api/exams';
 import Layout from '../components/layout/Layout';
-import Spinner from '../components/common/Spinner';
+import { CardListSkeleton } from '../components/common/Skeleton';
 import Badge from '../components/common/Badge';
 import { type Exam, type ExamQuestion } from '../types/index';
 import toast from 'react-hot-toast';
@@ -124,7 +124,7 @@ const Exams = () => {
     return `${m}:${s}`;
   };
 
-  if (loading) return <Layout><Spinner /></Layout>;
+  if (loading) return <Layout><CardListSkeleton /></Layout>;
 
   // Exam Result View
   if (view === 'result' && result) {
