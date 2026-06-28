@@ -25,7 +25,7 @@ const Login = () => {
         navigate('/verify-email-code', { state: { email: err.response.data.email } });
         return;
       }
-      toast.error(err.message || err.response?.data?.message || 'Login failed');
+      toast.error(err.response?.data?.message || 'Could not reach the server. Check your connection and try again.');
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const rawApiUrl = import.meta.env.VITE_API_URL?.replace(/\/+$/, '');
 const defaultApiUrl = import.meta.env.PROD ? 'https://ges-backend-mhro.onrender.com' : '';
@@ -24,9 +25,18 @@ API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      // Only a session that was actually logged in can "expire" — a failed
+      // login attempt (no token yet) is handled by the login page itself, so
+      // showing this toast there too would be a confusing double message.
+      const hadSession = Boolean(sessionStorage.getItem('token'));
       sessionStorage.removeItem('token');
       sessionStorage.removeItem('user');
-      window.location.href = '/login';
+      if (hadSession) {
+        toast.error('Your session has expired. Please log in again.');
+        window.location.href = '/login';
+      }
+    } else if (!error.response) {
+      toast.error('Could not reach the server. Check your connection and try again.');
     }
     return Promise.reject(error);
   }
