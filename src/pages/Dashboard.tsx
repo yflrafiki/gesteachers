@@ -74,20 +74,13 @@ const TeacherDashboard = () => {
     <Layout>
       <div className="space-y-6">
 
-        {/* Welcome Banner */}
+        {/* Welcome Banner — kept minimal; school/district/region, staff ID,
+            grade, years of service and qualification all duplicate the
+            Profile Summary card below. */}
         <div className="bg-slate-900 text-white rounded-xl p-5 md:p-6">
           <h2 className="text-xl md:text-2xl font-bold">
             Welcome, {profile?.first_name} {profile?.last_name}
           </h2>
-          <p className="text-slate-300 mt-1 text-sm">
-            {profile?.current_school} — {profile?.current_district}, {profile?.current_region}
-          </p>
-          <div className="flex flex-wrap gap-3 mt-3 text-xs md:text-sm text-slate-300">
-            <span>Staff ID: <strong>{profile?.staff_id}</strong></span>
-            <span>Grade: <strong>{profile?.current_grade}</strong></span>
-            <span>Years of Service: <strong>{profile?.years_of_service}</strong></span>
-            <span>Qualification: <strong>{profile?.qualification}</strong></span>
-          </div>
         </div>
 
         {/* Stats */}

@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell } from 'lucide-react';
+import { Bell, BellPlus } from 'lucide-react';
 import { getNotifications, getUnreadCount, markNotificationRead, markAllNotificationsRead } from '../../api/notifications';
 import { useNotificationStream } from '../../hooks/useNotificationStream';
+import { usePushNotifications } from '../../hooks/usePushNotifications';
 
 interface Notification {
   id: string;
@@ -31,6 +32,7 @@ const NotificationBell = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { permission, subscribing, subscribe } = usePushNotifications();
 
   // Initial backlog count on mount — SSE below only tells us about
   // notifications created *after* the connection opens, not what's unread
@@ -126,6 +128,16 @@ const NotificationBell = () => {
               </button>
             )}
           </div>
+          {permission === 'default' && (
+            <button
+              onClick={subscribe}
+              disabled={subscribing}
+              className="w-full flex items-center gap-2 px-4 py-2.5 text-xs border-b bg-amber-50 hover:bg-amber-100 transition text-amber-800 disabled:opacity-50"
+            >
+              <BellPlus size={14} />
+              {subscribing ? 'Enabling...' : "Enable notifications — get alerts even when you're not on this page"}
+            </button>
+          )}
           <div className="max-h-96 overflow-y-auto">
             {loading ? (
               <p className="text-center text-sm text-gray-400 py-8">Loading...</p>
