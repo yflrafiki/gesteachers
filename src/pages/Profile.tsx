@@ -404,7 +404,7 @@ const Profile = () => {
           <RequestChangeField label="Qualification" field="qualification" value={profile?.qualification}
             type="select" options={QUALIFICATIONS} pending={pendingByField['qualification']} />
           <InfoField label="Current Grade / Rank (HR managed)" value={profile?.current_grade} />
-          <InfoField label="Years of Service (HR managed)" value={profile?.years_of_service} />
+          <InfoField label="Years of Service (auto-calculated)" value={profile?.years_of_service} />
           <InfoField label="National Date of Present Rank (HR managed)" value={profile?.national_date_of_present_rank} />
           <InfoField label="Years in Current Rank (auto-calculated)" value={profile?.years_in_current_rank} />
         </Section>
